@@ -1,13 +1,16 @@
 #!/usr/bin/env zsh
 
+OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
 
 # Ensure bin of this repo is in profile
 "$DIR/../bin/file-appender" "$DIR/../resources/rc-alexdlaird-bin.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
-# Ensure brew is in profile
-file-appender "$DIR/../resources/rc-brew.sh" "$HOME/.zshrc"
+if [[ "$OS_NAME" == "Darwin" ]]; then
+  # Ensure brew is in profile
+  file-appender "$DIR/../resources/rc-brew.sh" "$HOME/.zshrc"
+fi
 
 # Ensure autoenv is in profile
 file-appender "$DIR/../resources/rc-autoenv.sh" "$HOME/.zshrc"
