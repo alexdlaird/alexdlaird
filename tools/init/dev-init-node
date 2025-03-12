@@ -3,9 +3,11 @@
 DIR="$( dirname "$0" )"
 . "$HOME/.zshrc"
 
-# Ensure nvm is in profile
-file-appender "$DIR/../resources/rc-nvm.sh" "$HOME/.zshrc"
-. "$HOME/.zshrc"
+if [[ "$OS_NAME" == "Darwin" ]]; then
+  # Ensure nvm is in profile
+  file-appender "$DIR/../resources/rc-nvm.sh" "$HOME/.zshrc"
+  . "$HOME/.zshrc"
+fi
 
 nvm install 18
 nvm install 22
