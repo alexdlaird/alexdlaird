@@ -1,9 +1,10 @@
 #!/usr/bin/env zsh
 
 DIR="$( dirname "$0" )"
+. "$HOME/.zshrc"
 
 # Ensure jenv is in profile
-file-appender "$DIR/../resources/zshrc-jenv.txt" "$HOME/.zshrc"
+file-appender "$DIR/../resources/rc-jenv.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 echo "--> JDK 1.8 must be installed and configured manually, if it is needed"

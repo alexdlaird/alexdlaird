@@ -8,6 +8,7 @@ from git import Repo
 
 DEVELOPER_DIR = os.path.expanduser(os.path.join("~", "Developer"))
 RESOURCES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "resources")
+ENV_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "env")
 
 with open(os.path.join(RESOURCES_DIR, "repos.json"), "r", encoding="utf-8") as f:
     repo_data = json.loads(f.read())
@@ -19,24 +20,22 @@ if not os.path.exists(DEVELOPER_DIR):
 def provision(user, source, relative_dest):
     dest = os.path.join(DEVELOPER_DIR, relative_dest)
     if not os.path.exists(dest):
-        print(f"Cloning {user}/{source} to {dest} ...")
+        print(f"--> Cloning {user}/{source} to {dest} ...")
 
         Repo.clone_from(f"git@github.com:{user}/{source}.git", dest)
 
         print("... done")
-    else:
-        print(f"Repo {user}/{source} already exists locally, doing nothing")
 
-    env_file = os.path.join(RESOURCES_DIR, "env", "{}-env".format(relative_dest.replace("/", ".")))
+    env_file = os.path.join(ENV_DIR, "{}-env".format(relative_dest.replace("/", ".")))
     if os.path.exists(env_file):
         if not os.path.exists(os.path.join(dest, ".env")):
-            print("Provisioning .env file ...")
+            print(f"--> Provisioning .env file for {user}/{source}")
 
             shutil.copyfile(env_file, os.path.join(dest, ".env"))
-
-            print("... done")
         else:
-            print("Repo already contains .env file, doing nothing")
+            print(f"--> Overwriting .env file for {user}/{source}")
+
+            shutil.copyfile(env_file, os.path.join(dest, ".env"))
 
 
 for user, repo in repo_data.items():
@@ -47,14 +46,12 @@ for user, repo in repo_data.items():
         for source, relative_dest in repo.items():
             provision(user, source, relative_dest)
 
-home_env_file = os.path.join(RESOURCES_DIR, "env", "home-env")
+home_env_file = os.path.join(ENV_DIR, "home-env")
 if os.path.exists(home_env_file):
     home_env_dest = os.path.expanduser(os.path.join("~", ".env"))
     if not os.path.exists(home_env_dest):
-        print("Provisioning home .env file ...")
+        print("--> Provisioning ~/.env")
 
         shutil.copyfile(home_env_file, home_env_dest)
-
-        print("... done")
     else:
-        print("Home already contains .env file, doing nothing")
+        print("--> Overwriting ~/.env")

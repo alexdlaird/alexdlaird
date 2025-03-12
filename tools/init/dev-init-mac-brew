@@ -2,6 +2,8 @@
 
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
+. "$DIR/../resources/rc-brew.sh"
+
 brew tap twilio/brew
 
 brew install zsh vim  \
@@ -13,6 +15,3 @@ brew install zsh vim  \
              ffmpeg bento4 gettext grep wget curl \
              openssl@3 ca-certificates \
              awscli gh twilio terraform
-
-# Initial zsh as the default shell
-chsh -s /bin/zsh

@@ -3,14 +3,17 @@
 DIR="$( dirname "$0" )"
 
 # Ensure bin of this repo is in profile
-"$DIR/../bin/file-appender" "$DIR/../resources/zshrc-alexdlaird-bin.txt" "$HOME/.zshrc"
+"$DIR/../bin/file-appender" "$DIR/../resources/rc-alexdlaird-bin.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
+# Ensure brew is in profile
+file-appender "$DIR/../resources/rc-brew.sh" "$HOME/.zshrc"
+
 # Ensure autoenv is in profile
-file-appender "$DIR/../resources/zshrc-autoenv.txt" "$HOME/.zshrc"
+file-appender "$DIR/../resources/rc-autoenv.sh" "$HOME/.zshrc"
 
 # Ensure preferred editors are defined in profile
-file-appender "$DIR/../resources/zshrc-editors.txt" "$HOME/.zshrc"
+file-appender "$DIR/../resources/rc-editors.sh" "$HOME/.zshrc"
 
 # Install public SSH key
 file-appender "$DIR/../resources/id_rsa.pub" "$HOME/.ssh/authorized_keys"
@@ -21,6 +24,3 @@ file-appender "$DIR/../resources/.gitignore_global" "$HOME/.gitignore_global"
 
 # Initialize vim config
 file-appender "$DIR/../resources/.vimrc" "$HOME/.vimrc"
-
-# Start a new shell to apply changes
-. "$HOME/.zshrc"

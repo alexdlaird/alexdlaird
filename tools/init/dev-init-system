@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 OS_NAME=$(uname -s)
-DIR="$( dirname "$0" )"
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # Ensure private-dev/bin is in profile
 
@@ -19,12 +19,15 @@ else
   exit 1
 fi
 
-. "$DIR/dev-init-prezto"
+# Initial zsh as the default shell
+chsh -s /bin/zsh
 
-. "$DIR/dev-init-tools"
+zsh "$DIR/dev-init-prezto"
 
-. "$DIR/dev-init-pyenv"
+zsh "$DIR/dev-init-tools"
 
-. "$DIR/dev-init-jenv"
+zsh "$DIR/dev-init-pyenv"
 
-. "$DIR/dev-init-node"
+zsh "$DIR/dev-init-jenv"
+
+zsh "$DIR/dev-init-node"

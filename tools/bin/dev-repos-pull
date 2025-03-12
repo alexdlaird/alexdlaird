@@ -16,7 +16,7 @@ for tld in DIRS:
             try:
                 repo = git.Repo(os.path.join(tld, dir_name))
                 repo.git_dir
-                print(f"Pulling latest changes for {dir_name}")
+                print(f"--> Pulling latest changes for {dir_name}")
                 repo.git.fetch(tags=True, prune=True)
                 repo.git.pull()
             except git.exc.InvalidGitRepositoryError:

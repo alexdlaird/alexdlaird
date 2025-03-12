@@ -62,6 +62,3 @@ git clone https://github.com/jenv/jenv.git ~/.jenv
 
 # Install autoenv
 wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
-
-# Initial zsh as the default shell
-chsh -s /bin/zsh

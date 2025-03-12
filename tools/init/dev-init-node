@@ -1,9 +1,10 @@
 #!/usr/bin/env zsh
 
 DIR="$( dirname "$0" )"
+. "$HOME/.zshrc"
 
 # Ensure nvm is in profile
-file-appender "$DIR/../resources/zshrc-nvm.txt" "$HOME/.zshrc"
+file-appender "$DIR/../resources/rc-nvm.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 nvm install 18

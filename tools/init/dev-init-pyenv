@@ -1,9 +1,10 @@
 #!/usr/bin/env zsh
 
 DIR="$( dirname "$0" )"
+. "$HOME/.zshrc"
 
 # Ensure pyenv is in profile
-file-appender "$DIR/../resources/zshrc-pyenv.txt" "$HOME/.zshrc"
+file-appender "$DIR/../resources/rc-pyenv.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 pyenv install 3.12
@@ -16,4 +17,4 @@ python -m pip install pyngrok amazon-orders hookee heliumcli \
 pyenv install 2.7
 pyenv install 3.6
 pyenv install 3.9
-pyenv install pypy-3.10
+pyenv install pypy3.10
