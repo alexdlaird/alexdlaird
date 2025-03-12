@@ -1,0 +1,1 @@
+source "$HOME/.autoenv/activate.sh"
