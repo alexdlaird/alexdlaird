@@ -40,13 +40,11 @@ https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 sudo apt-get update
 sudo apt-get install zsh vim \
                      python3 \
-                     maven sbt \
-                     nvm \
+                     maven sbt openjdk-8-jdk openjdk-11-jdk openjdk-21-jdk \
                      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
                      ffmpeg gettext vlc libmp3lame0 \
                      openssl ca-certificates \
                      gh twilio terraform
-
 sudo apt-get autoremove
 
 # Install awscli
@@ -62,3 +60,6 @@ git clone https://github.com/jenv/jenv.git ~/.jenv
 
 # Install autoenv
 wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
+
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh
