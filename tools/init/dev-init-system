@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+OS_NAME=$(uname -s)
+DIR="$( dirname "$0" )"
+
+# Ensure private-dev/bin is in profile
+
+if [[ "$OS_NAME" == "Darwin" ]]; then
+  . "$DIR/dev-init-mac-brew"
+elif [[ "$OS_NAME" == "Linux" ]]; then
+  if [ -f "/etc/debian_version" ]; then
+    . "$DIR/dev-init-debian"
+  else
+    echo "--> Operating system not supported for automatic provisioning"
+    exit 1
+  fi
+else
+  echo "--> Operating system not supported for automatic provisioning"
+  exit 1
+fi
+
+. "$DIR/dev-init-prezto"
+
+. "$DIR/dev-init-tools"
+
+. "$DIR/dev-init-pyenv"
+
+. "$DIR/dev-init-jenv"
+
+. "$DIR/dev-init-node"

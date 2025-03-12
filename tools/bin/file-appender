@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+SOURCE_FILE=$1
+DEST_FILE=$2
+
+while IFS= read -r line ; do
+  if ! grep -q "$line" "$DEST_FILE"; then
+    echo "Appending \"$line\" to $DEST_FILE"
+    echo "$line" >> "$DEST_FILE"
+  fi
+done <<< "$(cat "$SOURCE_FILE")"

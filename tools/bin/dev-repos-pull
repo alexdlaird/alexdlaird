@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+import os
+
+import git
+
+DIRS = [
+    os.path.expanduser(os.path.join("~", "Developer")),
+    os.path.expanduser(os.path.join("~", "Developer", "helium", "projects")),
+    os.path.expanduser(os.path.join("~", "Developer", "twilio"))
+]
+
+for tld in DIRS:
+    if os.path.exists(tld):
+        for dir_name in os.listdir(tld):
+            try:
+                repo = git.Repo(os.path.join(tld, dir_name))
+                repo.git_dir
+                print(f"Pulling latest changes for {dir_name}")
+                repo.git.fetch(tags=True, prune=True)
+                repo.git.pull()
+            except git.exc.InvalidGitRepositoryError:
+                pass

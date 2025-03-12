@@ -1,0 +1,4 @@
+#!/usr/bin/env zsh
+
+# Install and initialize prezto
+git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"

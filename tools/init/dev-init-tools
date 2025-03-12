@@ -1,0 +1,26 @@
+#!/usr/bin/env zsh
+
+DIR="$( dirname "$0" )"
+
+# Ensure bin of this repo is in profile
+"$DIR/../bin/file-appender" "$DIR/../resources/zshrc-alexdlaird-bin.txt" "$HOME/.zshrc"
+. "$HOME/.zshrc"
+
+# Ensure autoenv is in profile
+file-appender "$DIR/../resources/zshrc-autoenv.txt" "$HOME/.zshrc"
+
+# Ensure preferred editors are defined in profile
+file-appender "$DIR/../resources/zshrc-editors.txt" "$HOME/.zshrc"
+
+# Install public SSH key
+file-appender "$DIR/../resources/id_rsa.pub" "$HOME/.ssh/authorized_keys"
+
+# Initialize Git configs
+file-appender "$DIR/../resources/.gitconfig" "$HOME/.gitconfig"
+file-appender "$DIR/../resources/.gitignore_global" "$HOME/.gitignore_global"
+
+# Initialize vim config
+file-appender "$DIR/../resources/.vimrc" "$HOME/.vimrc"
+
+# Start a new shell to apply changes
+. "$HOME/.zshrc"

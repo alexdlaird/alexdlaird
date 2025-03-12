@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew tap twilio/brew
+
+brew install zsh vim  \
+             pyenv python@3.12 \
+             jenv maven sbt openjdk openjdk@11 openjdk@17 openjdk@21 \
+             autoenv \
+             nvm node@18 \
+             docker docker-completion sqlite \
+             ffmpeg bento4 gettext grep wget curl \
+             openssl@3 ca-certificates \
+             awscli gh twilio terraform
+
+# Initial zsh as the default shell
+chsh -s /bin/zsh

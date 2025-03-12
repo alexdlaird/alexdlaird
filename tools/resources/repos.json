@@ -1,0 +1,22 @@
+{
+    "alexdlaird": [
+        "alexdlaird",
+        "air-quality-bot",
+        "air-quality-bot-e2e",
+        "amazon-orders",
+        "django-health-check",
+        "java-ngrok",
+        "hookee",
+        "pyngrok",
+        "private-dev",
+        "twilio-taskrouter-demo"
+    ],
+    "HeliumEdu": {
+        "template-project": "template-project",
+        "heliumcli": "heliumcli",
+        "deploy": "helium",
+        "platform": "helium/projects/platform",
+        "frontend": "helium/projects/frontend",
+        "ci-tests": "helium/projects/ci-tests"
+    }
+}
