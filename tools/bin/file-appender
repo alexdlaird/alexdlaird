@@ -3,6 +3,13 @@
 SOURCE_FILE=$1
 DEST_FILE=$2
 
+if [[ -z "$SOURCE_FILE" ]] || [[ -z "$DEST_FILE" ]]; then
+  printf "Usage: file-appender <source-file> <dest-file>\n
+  This tool will check that each line of <source-file> exists in <dest-file>
+  and append any that are missing.\n\n"
+  exit 1
+fi
+
 while IFS= read -r line ; do
   if ! grep -q "$line" "$DEST_FILE"; then
     echo "--> Appending \"$line\" to $DEST_FILE"

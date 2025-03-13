@@ -11,21 +11,24 @@ DIRS = [
 ]
 
 print("---------------------------------------------")
-print(" Updating repos ...")
+print(" Pulling repos ...")
 print("---------------------------------------------")
 
 for tld in DIRS:
     if os.path.exists(tld):
+        print(f"--> Look for repos under {tld} ...")
         for dir_name in os.listdir(tld):
             try:
                 repo = git.Repo(os.path.join(tld, dir_name))
                 repo.git_dir
-                print(f"--> Pulling latest changes for {dir_name}")
+                print(f" -> Fetching {dir_name} ...")
                 repo.git.fetch(tags=True, prune=True)
                 repo.git.pull()
             except git.exc.InvalidGitRepositoryError:
                 pass
+            except Exception as e:
+                print(f"An error occurred pulling {dir_name}: {e}")
 
 print("---------------------------------------------")
-print(" finished repos pull ...")
+print(" ... finished repos pull")
 print("---------------------------------------------")

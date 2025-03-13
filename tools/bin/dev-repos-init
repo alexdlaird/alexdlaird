@@ -1,19 +1,27 @@
 #!/usr/bin/env python
 
-import os
 import json
+import os
 import shutil
+import sys
 
 from git import Repo
 
 DEVELOPER_DIR = os.path.expanduser(os.path.join("~", "Developer"))
 LIB_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib")
 ENV_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "env")
+REPOS_JSON_FILE = os.path.join(LIB_DIR, "repos.json")
 
-with open(os.path.join(LIB_DIR, "repos.json"), "r", encoding="utf-8") as f:
+if not os.path.exists(REPOS_JSON_FILE):
+    print(f"!!> Config file {REPOS_JSON_FILE} does not exist, nothing to do")
+
+    sys.exit(1)
+
+with open(REPOS_JSON_FILE, "r", encoding="utf-8") as f:
     repo_data = json.loads(f.read())
 
 if not os.path.exists(DEVELOPER_DIR):
+    print(f"--> Creating {DEVELOPER_DIR}")
     os.mkdir(DEVELOPER_DIR)
 
 
@@ -54,11 +62,11 @@ home_env_file = os.path.join(ENV_DIR, "home-env")
 if os.path.exists(home_env_file):
     home_env_dest = os.path.expanduser(os.path.join("~", ".env"))
     if not os.path.exists(home_env_dest):
-        print("--> Provisioning ~/.env")
+        print(f"--> Provisioning {home_env_dest}")
 
         shutil.copyfile(home_env_file, home_env_dest)
     else:
-        print("--> Overwriting ~/.env")
+        print(f"--> Overwriting {home_env_dest}")
 
 print("---------------------------------------------")
 print(" ... finished repos setup")
