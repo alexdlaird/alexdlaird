@@ -13,11 +13,11 @@ elif [[ "$OS_NAME" == "Linux" ]]; then
   if [ -f "/etc/debian_version" ]; then
     . "$DIR/dev-init-debian"
   else
-    echo "--> Operating system not supported for automatic provisioning"
+    echo "!!> Operating system not supported for automatic provisioning"
     exit 1
   fi
 else
-  echo "--> Operating system not supported for automatic provisioning"
+  echo "!!> Operating system not supported for automatic provisioning"
   exit 1
 fi
 
