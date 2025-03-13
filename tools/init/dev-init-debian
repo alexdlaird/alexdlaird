@@ -23,13 +23,6 @@ echo "deb https://repo.scala-sbt.org/scalasbt/debian /" \
 curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo -H gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/scalasbt-release.gpg --import
 sudo chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
 
-# Provision apt for twilio
-wget -qO- https://twilio-cli-prod.s3.amazonaws.com/twilio_pub.asc \
-  | sudo apt-key add -
-sudo touch /etc/apt/sources.list.d/twilio.list
-echo 'deb https://twilio-cli-prod.s3.amazonaws.com/apt/ /' \
-  | sudo tee /etc/apt/sources.list.d/twilio.list
-
 # Provision apt for terraform
 wget -O- https://apt.releases.hashicorp.com/gpg | \
 gpg --dearmor \
@@ -49,8 +42,13 @@ sudo apt-get install --ignore-missing \
                      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
                      ffmpeg gettext vlc libmp3lame0 \
                      openssl ca-certificates \
-                     gh twilio terraform
+                     gh terraform
 sudo apt-get autoremove
+
+if ! command -v sdk 2>&1 >/dev/null; then
+  curl -s "https://get.sdkman.io" | bash
+  sdk install scala 2.13.12
+fi
 
 if ! command -v aws 2>&1 >/dev/null; then
   # Install awscli
