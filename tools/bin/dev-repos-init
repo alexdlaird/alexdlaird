@@ -7,10 +7,10 @@ import shutil
 from git import Repo
 
 DEVELOPER_DIR = os.path.expanduser(os.path.join("~", "Developer"))
-RESOURCES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "resources")
+LIB_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib")
 ENV_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "env")
 
-with open(os.path.join(RESOURCES_DIR, "repos.json"), "r", encoding="utf-8") as f:
+with open(os.path.join(LIB_DIR, "repos.json"), "r", encoding="utf-8") as f:
     repo_data = json.loads(f.read())
 
 if not os.path.exists(DEVELOPER_DIR):
@@ -38,6 +38,10 @@ def provision(user, source, relative_dest):
             shutil.copyfile(env_file, os.path.join(dest, ".env"))
 
 
+print("---------------------------------------------")
+print(" Initializing repos ...")
+print("---------------------------------------------")
+
 for user, repo in repo_data.items():
     if isinstance(repo, list):
         for r in repo:
@@ -55,3 +59,7 @@ if os.path.exists(home_env_file):
         shutil.copyfile(home_env_file, home_env_dest)
     else:
         print("--> Overwriting ~/.env")
+
+print("---------------------------------------------")
+print(" ... finished repos setup")
+print("---------------------------------------------")

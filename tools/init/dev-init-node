@@ -3,11 +3,18 @@
 DIR="$( dirname "$0" )"
 . "$HOME/.zshrc"
 
+echo "---------------------------------------------"
+echo " Initializing node ..."
+echo "---------------------------------------------"
+
 if [[ "$OS_NAME" == "Darwin" ]]; then
-  # Ensure nvm is in profile
-  file-appender "$DIR/../resources/rc-nvm.sh" "$HOME/.zshrc"
+  file-appender "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc"
   . "$HOME/.zshrc"
 fi
 
 nvm install 18
 nvm install 22
+
+echo "---------------------------------------------"
+echo " ... finished node setup"
+echo "---------------------------------------------"

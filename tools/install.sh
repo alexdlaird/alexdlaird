@@ -12,7 +12,7 @@ fi
 
 . $PROFILE_DIR/tools/init/dev-init-system
 
-. $PROFILE_DIR/tools/resources/rc-pyenv.sh
+. $PROFILE_DIR/tools/lib/rc-pyenv.sh
 
 python $PROFILE_DIR/tools/bin/dev-repos-init
 

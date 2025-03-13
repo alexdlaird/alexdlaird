@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+echo "---------------------------------------------"
+echo " Initializing brew ..."
+echo "---------------------------------------------"
 
-. "$DIR/../resources/rc-brew.sh"
+if ! command -v brew 2>&1 >/dev/null; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+. "$DIR/../lib/rc-brew.sh"
 
 brew tap twilio/brew
 
@@ -15,3 +21,7 @@ brew install zsh vim  \
              ffmpeg bento4 gettext grep wget curl \
              openssl@3 ca-certificates \
              awscli gh twilio terraform
+
+echo "---------------------------------------------"
+echo " ... finished brew setup"
+echo "---------------------------------------------"

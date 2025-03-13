@@ -10,6 +10,10 @@ DIRS = [
     os.path.expanduser(os.path.join("~", "Developer", "twilio"))
 ]
 
+print("---------------------------------------------")
+print(" Updating repos ...")
+print("---------------------------------------------")
+
 for tld in DIRS:
     if os.path.exists(tld):
         for dir_name in os.listdir(tld):
@@ -21,3 +25,7 @@ for tld in DIRS:
                 repo.git.pull()
             except git.exc.InvalidGitRepositoryError:
                 pass
+
+print("---------------------------------------------")
+print(" finished repos pull ...")
+print("---------------------------------------------")

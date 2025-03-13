@@ -3,8 +3,11 @@
 DIR="$( dirname "$0" )"
 . "$HOME/.zshrc"
 
-# Ensure pyenv is in profile
-file-appender "$DIR/../resources/rc-pyenv.sh" "$HOME/.zshrc"
+echo "---------------------------------------------"
+echo " Initializing pyenv ..."
+echo "---------------------------------------------"
+
+file-appender "$DIR/../lib/rc-pyenv.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 pyenv install 3.12
@@ -18,3 +21,7 @@ pyenv install 2.7
 pyenv install 3.6
 pyenv install 3.9
 pyenv install pypy3.10
+
+echo "---------------------------------------------"
+echo " ... finished pyenv setup"
+echo "---------------------------------------------"

@@ -3,7 +3,9 @@
 OS_NAME=$(uname -s)
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# Ensure private-dev/bin is in profile
+echo "============================================="
+echo " Initializing $OS_NAME ..."
+echo "============================================="
 
 if [[ "$OS_NAME" == "Darwin" ]]; then
   . "$DIR/dev-init-mac-brew"
@@ -19,7 +21,6 @@ else
   exit 1
 fi
 
-# Initial zsh as the default shell
 chsh -s /bin/zsh
 
 zsh "$DIR/dev-init-prezto"
@@ -31,3 +32,7 @@ zsh "$DIR/dev-init-pyenv"
 zsh "$DIR/dev-init-jenv"
 
 zsh "$DIR/dev-init-node"
+
+echo "============================================="
+echo " ... finished system setup"
+echo "============================================="
