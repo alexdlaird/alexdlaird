@@ -5,9 +5,10 @@ OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
 . "$HOME/.zshrc"
 
-OS_ARCH=$(uname -m)
-if [[ "OS_ARCH" == "x86_64" ]]; then
+if [[ "$(uname -m)" == "x86_64" ]]; then
   OS_ARCH="amd64"
+else
+  OS_ARCH="arm64"
 fi
 
 # Ensure jenv is in profile
