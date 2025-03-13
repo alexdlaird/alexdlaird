@@ -1,8 +1,14 @@
 #!/usr/bin/env zsh
 
+
 OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
 . "$HOME/.zshrc"
+
+OS_ARCH=$(uname -m)
+if [[ "OS_ARCH" == "x86_64" ]]; then
+  OS_ARCH="amd64"
+fi
 
 # Ensure jenv is in profile
 file-appender "$DIR/../resources/rc-jenv.sh" "$HOME/.zshrc"
@@ -20,7 +26,7 @@ if [[ "$OS_NAME" == "Darwin" ]]; then
   jenv add /opt/homebrew/opt/openjdk
   echo "--> For IntelliJ, add JDK path /opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
 else
-  jenv add /usr/lib/jvm/java-8-openjdk-amd64
-  jenv add /usr/lib/jvm/java-11-openjdk-amd64/
-  jenv add /usr/lib/jvm/java-21-openjdk-amd64/
+  jenv add /usr/lib/jvm/java-8-openjdk-$OS_ARCH
+  jenv add /usr/lib/jvm/java-11-openjdk-$OS_ARCH
+  jenv add /usr/lib/jvm/java-21-openjdk-$OS_ARCH
 fi
