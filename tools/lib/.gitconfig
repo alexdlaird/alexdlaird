@@ -1,5 +1,0 @@
-[user]
-        name = Alex Laird
-        email = contact@alexlaird.com
-[core]
-        excludesfile = ~/.gitignore_global

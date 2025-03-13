@@ -12,7 +12,7 @@ fi
 
 brew tap twilio/brew
 
-brew install zsh vim  \
+brew install zsh vim tmux \
              pyenv python@3.12 \
              jenv maven sbt openjdk openjdk@11 openjdk@17 openjdk@21 scala@2.13 \
              autoenv \

@@ -28,11 +28,19 @@ file-appender "$DIR/../lib/rc-editors.sh" "$HOME/.zshrc"
 file-appender "$DIR/../lib/id_rsa.pub" "$HOME/.ssh/authorized_keys"
 
 # Initialize Git configs
-file-appender "$DIR/../lib/.gitconfig" "$HOME/.gitconfig"
+git config --global core.excludesFile "$HOME/.gitignore_global"
+git config --global user.name "Alex Laird"
+git config --global user.email "contact@alexlaird.com"
 file-appender "$DIR/../lib/.gitignore_global" "$HOME/.gitignore_global"
 
 # Initialize vim config
 file-appender "$DIR/../lib/.vimrc" "$HOME/.vimrc"
+
+# Initialize hosts
+HOSTS_FILE="$DIR/../env/hosts"
+if [ -f "$HOSTS_FILE" ]; then
+  file-appender "$HOSTS_FILE" "/etc/hosts"
+fi
 
 echo "---------------------------------------------"
 echo " ... finished tools setup"
