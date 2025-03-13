@@ -32,6 +32,7 @@ if [[ "$OS_NAME" == "Darwin" ]]; then
 else
   jenv add /usr/lib/jvm/java-8-openjdk-$OS_ARCH
   jenv add /usr/lib/jvm/java-11-openjdk-$OS_ARCH
+  jenv add /usr/lib/jvm/java-17-openjdk-$OS_ARCH
   jenv add /usr/lib/jvm/java-21-openjdk-$OS_ARCH
 fi
 
