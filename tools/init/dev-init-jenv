@@ -16,6 +16,7 @@ echo " Initializing jenv ..."
 echo "---------------------------------------------"
 
 file-appender "$DIR/../lib/rc-jenv.sh" "$HOME/.zshrc"
+file-appender "$DIR/../lib/rc-sdk.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 echo "--> JDK 1.8 must be installed and configured manually, if it is needed"
@@ -34,6 +35,8 @@ else
   jenv add /usr/lib/jvm/java-11-openjdk-$OS_ARCH
   jenv add /usr/lib/jvm/java-17-openjdk-$OS_ARCH
   jenv add /usr/lib/jvm/java-21-openjdk-$OS_ARCH
+
+  sdk install scala 2.13.12
 fi
 
 echo "---------------------------------------------"

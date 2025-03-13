@@ -47,7 +47,6 @@ sudo apt-get autoremove
 
 if ! command -v sdk 2>&1 >/dev/null; then
   curl -s "https://get.sdkman.io" | bash
-  sdk install scala 2.13.12
 fi
 
 if ! command -v aws 2>&1 >/dev/null; then
