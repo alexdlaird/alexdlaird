@@ -36,7 +36,7 @@ https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 
 sudo apt-get update
 sudo apt-get install --ignore-missing \
-                     zsh vim \
+                     zsh vim tmux \
                      python3 python3-dev libjpeg-dev \
                      maven sbt openjdk-8-jdk openjdk-11-jdk openjdk-21-jdk \
                      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
@@ -45,15 +45,24 @@ sudo apt-get install --ignore-missing \
                      gh terraform
 sudo apt-get autoremove
 
-if ! command -v sdk 2>&1 >/dev/null; then
-  curl -s "https://get.sdkman.io" | bash
-fi
-
 if ! command -v aws 2>&1 >/dev/null; then
-  # Install awscli
+  # Install aws
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip awscliv2.zip
   sudo ./aws/install
+  sudo rm -rf awscliv2.zip aws
+fi
+
+if ! command -v twilio 2>&1 >/dev/null; then
+  # Install twilio
+  curl -L "https://runtime-cli-redirect-6533.twil.io/redirect-to-github?ext=.deb" -o "twilio.deb"
+  sudo apt-get install ./twilio.deb
+  sudo rm twilio.deb
+fi
+
+if ! command -v sdk 2>&1 >/dev/null; then
+  # Install sdk
+  curl -s "https://get.sdkman.io" | bash
 fi
 
 if ! command -v pyenv 2>&1 >/dev/null; then
@@ -63,7 +72,7 @@ fi
 
 if ! command -v jenv 2>&1 >/dev/null; then
   # Install jenv
-  git clone https://github.com/jenv/jenv.git ~/.jenv
+  git clone https://github.com/jenv/jenv.git $HOME/.jenv
 fi
 
 # Install autoenv
