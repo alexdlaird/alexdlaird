@@ -3,32 +3,37 @@
 OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
 
-# Ensure bin of this repo is in profile
-"$DIR/../bin/file-appender" "$DIR/../resources/rc-alexdlaird-bin.sh" "$HOME/.zshrc"
+echo "---------------------------------------------"
+echo " Initializing other tools ..."
+echo "---------------------------------------------"
+
+# Add alexdlaird/bin to path
+"$DIR/../bin/file-appender" "$DIR/../lib/rc-alexdlaird-bin.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 if [[ "$OS_NAME" == "Darwin" ]]; then
-  # Ensure brew is in profile
-  file-appender "$DIR/../resources/rc-brew.sh" "$HOME/.zshrc"
+  file-appender "$DIR/../lib/rc-brew.sh" "$HOME/.zshrc"
 fi
 
 if [[ "$OS_NAME" == "Darwin" ]]; then
-  # Ensure autoenv is in profile
-  file-appender "$DIR/../resources/rc-autoenv-mac.sh" "$HOME/.zshrc"
+  file-appender "$DIR/../lib/rc-autoenv-mac.sh" "$HOME/.zshrc"
 else
-  # Ensure autoenv is in profile
-    file-appender "$DIR/../resources/rc-autoenv-debian.sh" "$HOME/.zshrc"
+    file-appender "$DIR/../lib/rc-autoenv-debian.sh" "$HOME/.zshrc"
 fi
 
-# Ensure preferred editors are defined in profile
-file-appender "$DIR/../resources/rc-editors.sh" "$HOME/.zshrc"
+# Add preferred editors to profile
+file-appender "$DIR/../lib/rc-editors.sh" "$HOME/.zshrc"
 
 # Install public SSH key
-file-appender "$DIR/../resources/id_rsa.pub" "$HOME/.ssh/authorized_keys"
+file-appender "$DIR/../lib/id_rsa.pub" "$HOME/.ssh/authorized_keys"
 
 # Initialize Git configs
-file-appender "$DIR/../resources/.gitconfig" "$HOME/.gitconfig"
-file-appender "$DIR/../resources/.gitignore_global" "$HOME/.gitignore_global"
+file-appender "$DIR/../lib/.gitconfig" "$HOME/.gitconfig"
+file-appender "$DIR/../lib/.gitignore_global" "$HOME/.gitignore_global"
 
 # Initialize vim config
-file-appender "$DIR/../resources/.vimrc" "$HOME/.vimrc"
+file-appender "$DIR/../lib/.vimrc" "$HOME/.vimrc"
+
+echo "---------------------------------------------"
+echo " ... finished tools setup"
+echo "---------------------------------------------"

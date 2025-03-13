@@ -11,8 +11,11 @@ else
   OS_ARCH="arm64"
 fi
 
-# Ensure jenv is in profile
-file-appender "$DIR/../resources/rc-jenv.sh" "$HOME/.zshrc"
+echo "---------------------------------------------"
+echo " Initializing jenv ..."
+echo "---------------------------------------------"
+
+file-appender "$DIR/../lib/rc-jenv.sh" "$HOME/.zshrc"
 . "$HOME/.zshrc"
 
 echo "--> JDK 1.8 must be installed and configured manually, if it is needed"
@@ -31,3 +34,7 @@ else
   jenv add /usr/lib/jvm/java-11-openjdk-$OS_ARCH
   jenv add /usr/lib/jvm/java-21-openjdk-$OS_ARCH
 fi
+
+echo "---------------------------------------------"
+echo " ... finished jenv setup"
+echo "---------------------------------------------"
