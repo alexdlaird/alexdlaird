@@ -1,0 +1,1 @@
+source "/home/alexdlaird/.sdkman/bin/sdkman-init.sh"
