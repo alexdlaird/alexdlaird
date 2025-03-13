@@ -1,6 +1,6 @@
 ## Useful Dev Tools
 
-Some of my favorite tools that I use for development include:
+Some of my favorite tools 🔧 that I use for development include:
 
 - [IntelliJ](https://www.jetbrains.com/idea/download) - IDE
 - [iTerm](https://iterm2.com/downloads.html) - A better terminal
@@ -13,8 +13,8 @@ Some of my favorite tools that I use for development include:
 
 ## Useful Terminal Tools
 
-I use this provisioning script to set up new Unix-based development environments for myself. Everyone's preferences
-are different, but feel free to use it as a starting point for your own!
+I use this provisioning 🚀 script to set up new Unix-based development environments 💻 for myself. Everyone's preferences
+are different, but feel free to use it as a starting point for your own 🐣!
 
 ```
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexdlaird/alexdlaird/refs/heads/main/tools/install.sh)"
