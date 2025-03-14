@@ -5,7 +5,7 @@ echo " Initializing Debian ..."
 echo "---------------------------------------------"
 
 sudo apt-get update
-sudo apt-get install wget curl unzip apt-transport-https gnupg software-properties-common -yqq
+sudo apt-get install wget curl zip unzip apt-transport-https gnupg software-properties-common -yqq
 
 # Provision apt for Docker
 sudo install -m 0755 -d /etc/apt/keyrings
