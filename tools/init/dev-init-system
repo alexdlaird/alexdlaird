@@ -11,7 +11,11 @@ if [[ "$OS_NAME" == "Darwin" ]]; then
   . "$DIR/dev-init-mac-brew"
 elif [[ "$OS_NAME" == "Linux" ]]; then
   if [ -f "/etc/debian_version" ]; then
-    . "$DIR/dev-init-debian"
+    if command -v raspi-config 2>&1 >/dev/null; then
+      . "$DIR/dev-init-pi"
+    else
+      . "$DIR/dev-init-debian"
+    fi
   else
     echo "!!> Operating system not supported for automatic provisioning"
     exit 1
@@ -31,7 +35,9 @@ zsh "$DIR/dev-init-pyenv"
 
 zsh "$DIR/dev-init-jenv"
 
-zsh "$DIR/dev-init-node"
+if ! command -v nvm 2>&1 >/dev/null; then
+  zsh "$DIR/dev-init-nvm"
+fi
 
 echo "============================================="
 echo " ... finished system setup"

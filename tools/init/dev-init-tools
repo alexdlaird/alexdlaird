@@ -15,11 +15,7 @@ if [[ "$OS_NAME" == "Darwin" ]]; then
   file-appender "$DIR/../lib/rc-brew.sh" "$HOME/.zshrc"
 fi
 
-if [[ "$OS_NAME" == "Darwin" ]]; then
-  file-appender "$DIR/../lib/rc-autoenv-mac.sh" "$HOME/.zshrc"
-else
-    file-appender "$DIR/../lib/rc-autoenv-debian.sh" "$HOME/.zshrc"
-fi
+file-appender "$DIR/../lib/rc-autoenv.sh" "$HOME/.zshrc"
 
 # Add preferred editors to profile
 file-appender "$DIR/../lib/rc-editors.sh" "$HOME/.zshrc"

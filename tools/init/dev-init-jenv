@@ -31,12 +31,15 @@ if [[ "$OS_NAME" == "Darwin" ]]; then
   jenv add /opt/homebrew/opt/openjdk
   echo "--> For IntelliJ, add JDK path /opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
 else
-  jenv add /usr/lib/jvm/java-8-openjdk-$OS_ARCH
-  jenv add /usr/lib/jvm/java-11-openjdk-$OS_ARCH
   jenv add /usr/lib/jvm/java-17-openjdk-$OS_ARCH
-  jenv add /usr/lib/jvm/java-21-openjdk-$OS_ARCH
 
-  sdk install scala 2.13.12
+  if ! command -v raspi-config 2>&1 >/dev/null; then
+    jenv add /usr/lib/jvm/java-8-openjdk-$OS_ARCH
+    jenv add /usr/lib/jvm/java-11-openjdk-$OS_ARCH
+    jenv add /usr/lib/jvm/java-21-openjdk-$OS_ARCH
+
+    sdk install scala 2.13.12
+  fi
 fi
 
 echo "---------------------------------------------"
