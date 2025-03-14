@@ -7,10 +7,8 @@ echo "---------------------------------------------"
 echo " Initializing node ..."
 echo "---------------------------------------------"
 
-if [[ "$OS_NAME" == "Darwin" ]]; then
-  file-appender "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc"
-  . "$HOME/.zshrc"
-fi
+file-appender "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc"
+. "$HOME/.zshrc"
 
 nvm install 18
 nvm install 22

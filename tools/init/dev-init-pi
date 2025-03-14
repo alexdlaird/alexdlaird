@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+echo "---------------------------------------------"
+echo " Initializing Raspberry Pi ..."
+echo "---------------------------------------------"
+
+sudo apt-get update
+sudo apt-get install wget curl apt-transport-https gnupg software-properties-common -yqq
+
+sudo apt-get update
+sudo apt-get install --ignore-missing \
+                     zsh vim tmux wget curl \
+                     python3 python3-dev libjpeg-dev \
+                     maven openjdk-17-jdk \
+                     ffmpeg vlc libmp3lame0 \
+                     openssl ca-certificates
+sudo apt-get autoremove
+
+if ! command -v pyenv 2>&1 >/dev/null; then
+  # Install pyenv
+  curl -fsSL https://pyenv.run | bash
+fi
+
+if ! command -v jenv 2>&1 >/dev/null; then
+  # Install jenv
+  git clone https://github.com/jenv/jenv.git $HOME/.jenv
+fi
+
+if [ ! -d "$HOME/.autoenv" ]; then
+  # Install autoenv
+  wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
+fi
+
+echo "---------------------------------------------"
+echo " ... finished Raspberry Pi setup"
+echo "---------------------------------------------"

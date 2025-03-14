@@ -17,10 +17,12 @@ python -m pip install pyngrok amazon-orders hookee heliumcli \
                       GitPython Flask pytest coverage mypy Sphinx \
                       plexapi
 
-pyenv install 2.7
-pyenv install 3.6
-pyenv install 3.9
-pyenv install pypy3.10
+if ! command -v raspi-config 2>&1 >/dev/null; then
+  pyenv install 2.7
+  pyenv install 3.6
+  pyenv install 3.9
+  pyenv install pypy3.10
+fi
 
 echo "---------------------------------------------"
 echo " ... finished pyenv setup"

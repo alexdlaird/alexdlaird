@@ -75,8 +75,10 @@ if ! command -v jenv 2>&1 >/dev/null; then
   git clone https://github.com/jenv/jenv.git $HOME/.jenv
 fi
 
-# Install autoenv
-wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
+if [ ! -d "$HOME/.autoenv" ]; then
+  # Install autoenv
+  wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
+fi
 
 if ! command -v nvm 2>&1 >/dev/null; then
   # Install nvm
