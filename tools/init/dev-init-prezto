@@ -4,6 +4,10 @@ echo "---------------------------------------------"
 echo " Initializing prezto ..."
 echo "---------------------------------------------"
 
+if [ ! -d "$HOME/.zprezto" ]; then
+  rm -f $HOME/.zshrc
+fi
+
 git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
 
 setopt EXTENDED_GLOB
