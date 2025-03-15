@@ -22,7 +22,7 @@ brew install zsh vim tmux \
              openssl@3 ca-certificates \
              awscli gh twilio terraform
 
-ln -s "$(brew --prefix autoenv)" $HOME/.autoenv
+ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
 
 echo "---------------------------------------------"
 echo " ... finished brew setup"
