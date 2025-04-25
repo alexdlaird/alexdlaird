@@ -19,7 +19,7 @@ brew install zsh vim tmux \
              nvm node@18 \
              docker docker-completion sqlite \
              ffmpeg bento4 gettext grep wget curl \
-             openssl@3 ca-certificates \
+             openssl@3 ca-certificates gpg \
              awscli gh twilio terraform
 
 ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
