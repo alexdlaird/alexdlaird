@@ -18,7 +18,7 @@ brew install zsh vim tmux \
              autoenv \
              nvm node@18 \
              docker docker-completion sqlite \
-             ffmpeg bento4 gettext grep wget curl \
+             ffmpeg bento4 gettext grep gnu-sed wget curl \
              openssl@3 ca-certificates gpg \
              awscli gh twilio terraform
 
