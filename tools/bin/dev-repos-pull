@@ -22,7 +22,7 @@ for tld in DIRS:
                 repo = git.Repo(os.path.join(tld, dir_name))
                 repo.git_dir
                 print(f" -> Fetching {dir_name} ...")
-                repo.git.fetch(tags=True, prune=True)
+                repo.git.fetch(tags=True, prune=True, force=True)
                 repo.git.pull()
             except git.exc.InvalidGitRepositoryError:
                 pass
