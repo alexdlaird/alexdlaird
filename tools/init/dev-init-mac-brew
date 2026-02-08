@@ -17,7 +17,7 @@ brew install zsh vim tmux \
              jenv maven sbt openjdk openjdk@11 openjdk@17 openjdk@21 scala@2.13 \
              autoenv \
              nvm node@18 \
-             lcov \
+             lcov fastlane \
              docker docker-completion sqlite \
              ffmpeg bento4 gettext grep gnu-sed wget curl \
              openssl@3 ca-certificates gpg \
