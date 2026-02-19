@@ -14,9 +14,10 @@
     "HeliumEdu": {
         "template-project": "template-project",
         "heliumcli": "heliumcli",
-        "deploy": "helium",
+        "infra": "helium",
         "platform": "helium/projects/platform",
         "frontend": "helium/projects/frontend",
+        "frontend-legacy": "helium/projects/frontend-legacy",
         "ci-tests": "helium/projects/ci-tests"
     }
 }
