@@ -27,6 +27,7 @@ Some of my favorite terminal packages that `install.sh` sets up include:
 - [`pyenv`](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation) - Manage Python versions
 - [`jenv`](https://github.com/jenv/jenv?tab=readme-ov-file#11-installing-jenv) - Manage Java versions
 - [`nvm`](https://github.com/nvm-sh/nvm) - Manage Node versions
+- [`fvm`](https://github.com/leoafarias/fvm) - Manage Flutter versions
 - [`autoenv`](https://github.com/hyperupcall/autoenv?tab=readme-ov-file#installation-automated) - Source `.env` files
 - [`aws`](https://aws.amazon.com/cli/) - AWS CLI
 - [`terraform`](https://developer.hashicorp.com/terraform/tutorials/cli) - Terraform CLI
