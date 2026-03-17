@@ -88,11 +88,20 @@ CLAUDE_DIR = os.path.join(DEVELOPER_DIR, "private-dev", "claude")
 symlink(os.path.join(CLAUDE_DIR, "CLAUDE.md"),
         os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md")))
 
+symlink(os.path.join(CLAUDE_DIR, "projects", "helium.md"),
+        os.path.join(DEVELOPER_DIR, "helium", ".claude", "CLAUDE.md"))
+
 symlink(os.path.join(CLAUDE_DIR, "projects", "helium-frontend.md"),
         os.path.join(DEVELOPER_DIR, "helium", "projects", "frontend", ".claude", "CLAUDE.md"))
 
 symlink(os.path.join(CLAUDE_DIR, "projects", "helium-platform.md"),
         os.path.join(DEVELOPER_DIR, "helium", "projects", "platform", ".claude", "CLAUDE.md"))
+
+symlink(os.path.join(CLAUDE_DIR, "projects", "pyngrok.md"),
+        os.path.join(DEVELOPER_DIR, "pyngrok", ".claude", "CLAUDE.md"))
+
+symlink(os.path.join(CLAUDE_DIR, "projects", "java-ngrok.md"),
+        os.path.join(DEVELOPER_DIR, "java-ngrok", ".claude", "CLAUDE.md"))
 
 print("---------------------------------------------")
 print(" ... finished repos setup")
