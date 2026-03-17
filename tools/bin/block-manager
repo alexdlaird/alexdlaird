@@ -73,46 +73,30 @@ add_or_update_block() {
   local start_pattern="$COMMENT_CHAR >>> managed: $block_name >>>"
   local end_pattern="$COMMENT_CHAR <<< managed: $block_name <<<"
 
-  # Read and expand variables in source content
+  # Read and expand only $HOME in source content (not $PATH or other vars)
   local expanded_content
-  expanded_content=$(envsubst < "$source_file")
+  expanded_content=$(HOME="$HOME" envsubst '${HOME}' < "$source_file")
 
-  # Check if content has changed (if block exists)
-  if grep -q "$start_pattern" "$dest_file"; then
-    # Extract existing block content
+  # Check if block exists
+  if grep -qF "$start_pattern" "$dest_file"; then
+    # Extract existing block content for comparison
     local existing_content
-    existing_content=$(awk -v start="$start_pattern" -v end="$end_pattern" '
-      $0 ~ start { capture = 1; next }
-      $0 ~ end { capture = 0; next }
-      capture { print }
-    ' "$dest_file")
+    existing_content=$(sed -n "/$start_pattern/,/$end_pattern/{/$start_pattern/d;/$end_pattern/d;p;}" "$dest_file")
 
     if [[ "$existing_content" == "$expanded_content" ]]; then
       echo "--> Block '$block_name' in $dest_file is up to date"
       return 0
     fi
 
-    # Replace existing block
+    # Remove existing block, then we'll append the new one
     local temp_file
     temp_file=$(mktemp)
-    awk -v start="$start_pattern" -v end="$end_pattern" -v content="$expanded_content" -v startline="$start_pattern" -v endline="$end_pattern" '
-      $0 ~ start {
-        print startline
-        print content
-        skip = 1
-        next
-      }
-      $0 ~ end {
-        print endline
-        skip = 0
-        next
-      }
-      !skip { print }
-    ' "$dest_file" > "$temp_file"
-
+    sed "/$start_pattern/,/$end_pattern/d" "$dest_file" > "$temp_file"
     mv "$temp_file" "$dest_file"
     echo "--> Updated block '$block_name' in $dest_file"
   else
+    echo "--> Added block '$block_name' to $dest_file"
+  fi
     # Append new block
     {
       echo ""
