@@ -7,27 +7,13 @@ DIR="$( dirname "$0" )"
 section_header "Initializing Flutter/FVM"
 
 if [[ "$OS_NAME" == "Darwin" ]]; then
-  # On macOS, Flutter is managed via FVM (installed via dart from brew)
-  # Ensure brew's flutter cask is not installed
+  # On macOS, ensure brew's flutter cask is not installed (we use fvm)
   brew uninstall --cask flutter 2>/dev/null || true
+fi
 
-  # Install dart-sdk if not present
-  if ! command -v dart 2>&1 >/dev/null; then
-    brew install dart-sdk
-  fi
-
-  if ! command -v fvm 2>&1 >/dev/null; then
-    dart pub global activate fvm
-  fi
-else
-  # On Linux, install Flutter via snap if not present
-  if ! command -v flutter 2>&1 >/dev/null; then
-    sudo snap install flutter --classic
-  fi
-
-  if ! command -v fvm 2>&1 >/dev/null; then
-    dart pub global activate fvm
-  fi
+# Install fvm if not present
+if ! command -v fvm 2>&1 >/dev/null; then
+  dart pub global activate fvm
 fi
 
 section_footer "Flutter/FVM setup"
