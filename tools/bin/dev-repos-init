@@ -68,11 +68,24 @@ if os.path.exists(home_env_file):
     else:
         print(f"--> Overwriting {home_env_dest}")
 
-claude_source = os.path.join(DEVELOPER_DIR, "private-dev", "claude", "CLAUDE.md")
-claude_dest = os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md"))
-print(f"--> Symlinking {claude_dest} -> {claude_source}")
-os.makedirs(os.path.dirname(claude_dest), exist_ok=True)
-os.symlink(claude_source, claude_dest)
+def symlink(source, dest):
+    print(f"--> Symlinking {dest} -> {source}")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    if os.path.islink(dest) or os.path.exists(dest):
+        os.remove(dest)
+    os.symlink(source, dest)
+
+
+CLAUDE_DIR = os.path.join(DEVELOPER_DIR, "private-dev", "claude")
+
+symlink(os.path.join(CLAUDE_DIR, "CLAUDE.md"),
+        os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md")))
+
+symlink(os.path.join(CLAUDE_DIR, "projects", "helium-frontend.md"),
+        os.path.join(DEVELOPER_DIR, "helium", "projects", "frontend", ".claude", "CLAUDE.md"))
+
+symlink(os.path.join(CLAUDE_DIR, "projects", "helium-platform.md"),
+        os.path.join(DEVELOPER_DIR, "helium", "projects", "platform", ".claude", "CLAUDE.md"))
 
 print("---------------------------------------------")
 print(" ... finished repos setup")
