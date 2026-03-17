@@ -97,15 +97,14 @@ add_or_update_block() {
   else
     echo "--> Added block '$block_name' to $dest_file"
   fi
-    # Append new block
-    {
-      echo ""
-      echo "$start_pattern"
-      echo "$expanded_content"
-      echo "$end_pattern"
-    } >> "$dest_file"
-    echo "--> Added block '$block_name' to $dest_file"
-  fi
+
+  # Append the block
+  {
+    echo ""
+    echo "$start_pattern"
+    echo "$expanded_content"
+    echo "$end_pattern"
+  } >> "$dest_file"
 }
 
 # Parse arguments
