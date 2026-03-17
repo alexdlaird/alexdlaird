@@ -3,6 +3,7 @@
 OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
 . "$DIR/../lib/init-helpers.sh"
+. "$HOME/.zshrc"
 
 section_header "Initializing Flutter/FVM"
 
@@ -10,6 +11,10 @@ if [[ "$OS_NAME" == "Darwin" ]]; then
   # On macOS, ensure brew's flutter cask is not installed (we use fvm)
   brew uninstall --cask flutter 2>/dev/null || true
 fi
+
+# Add pub-cache bin to PATH
+block-manager "$DIR/../lib/rc-dart.sh" "$HOME/.zshrc" "dart"
+. "$HOME/.zshrc"
 
 # Install fvm if not present
 if ! command -v fvm 2>&1 >/dev/null; then
