@@ -4,4 +4,10 @@
 .python-version
 .env
 .env.leave
+.env.local
+.env.docker
+.idea/
+*.log
+*.tfstate
+*.tfstate.backup
 .claude/
