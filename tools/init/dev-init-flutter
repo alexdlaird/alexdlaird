@@ -21,4 +21,8 @@ if ! command -v fvm 2>&1 >/dev/null; then
   dart pub global activate fvm
 fi
 
+# Install Flutter versions (skip if already installed)
+fvm list | grep -q "3.41.3" || fvm install 3.41.3
+fvm global 3.41.3
+
 section_footer "Flutter/FVM setup"
