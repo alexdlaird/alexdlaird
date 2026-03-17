@@ -68,6 +68,12 @@ if os.path.exists(home_env_file):
     else:
         print(f"--> Overwriting {home_env_dest}")
 
+claude_source = os.path.join(DEVELOPER_DIR, "private-dev", "claude", "CLAUDE.md")
+claude_dest = os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md"))
+print(f"--> Symlinking {claude_dest} -> {claude_source}")
+os.makedirs(os.path.dirname(claude_dest), exist_ok=True)
+os.symlink(claude_source, claude_dest)
+
 print("---------------------------------------------")
 print(" ... finished repos setup")
 print("---------------------------------------------")
