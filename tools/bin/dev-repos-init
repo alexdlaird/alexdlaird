@@ -33,6 +33,13 @@ def provision(user, source, relative_dest):
         Repo.clone_from(f"git@github.com:{user}/{source}.git", dest)
 
         print("... done")
+    else:
+        print(f"--> Updating {user}/{source} at {dest} ...")
+
+        repo = Repo(dest)
+        repo.remotes.origin.pull()
+
+        print("... done")
 
     env_file = os.path.join(ENV_DIR, "{}-env".format(relative_dest.replace("/", ".")))
     if os.path.exists(env_file):

@@ -1,0 +1,28 @@
+#!/usr/bin/env zsh
+
+OS_NAME=$(uname -s)
+DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing Flutter/FVM"
+
+if [[ "$OS_NAME" == "Darwin" ]]; then
+  # On macOS, Flutter is managed via FVM (installed via dart from brew)
+  # Ensure brew's flutter cask is not installed
+  brew uninstall --cask flutter 2>/dev/null || true
+
+  if ! command -v fvm 2>&1 >/dev/null; then
+    dart pub global activate fvm
+  fi
+else
+  # On Linux, install Flutter via snap if not present
+  if ! command -v flutter 2>&1 >/dev/null; then
+    sudo snap install flutter --classic
+  fi
+
+  if ! command -v fvm 2>&1 >/dev/null; then
+    dart pub global activate fvm
+  fi
+fi
+
+section_footer "Flutter/FVM setup"

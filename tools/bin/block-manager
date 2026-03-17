@@ -1,24 +1,5 @@
 #!/usr/bin/env bash
 
-# block-manager - Manage marked blocks in configuration files
-#
-# Usage:
-#   block-manager <source-file> <dest-file> <block-name>
-#   block-manager --remove <block-name> <dest-file>
-#
-# This tool manages "owned" blocks in destination files using markers:
-#   # >>> managed: <block-name> >>>
-#   ... content ...
-#   # <<< managed: <block-name> <<<
-#
-# When adding/updating:
-#   - If the block exists, it is replaced entirely
-#   - If the block doesn't exist, it is appended
-#   - Variables like $HOME are expanded at write time
-#
-# When removing:
-#   - The block and its markers are removed from the dest file
-
 set -e
 
 START_MARKER="# >>> managed:"

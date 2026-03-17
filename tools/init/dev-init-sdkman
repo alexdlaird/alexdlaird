@@ -1,0 +1,24 @@
+#!/usr/bin/env zsh
+
+DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
+. "$HOME/.zshrc"
+
+section_header "Initializing SDKMAN"
+
+# Install SDKMAN if not present (Linux only, macOS uses brew for scala)
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  if ! command -v sdk 2>&1 >/dev/null; then
+    curl -s "https://get.sdkman.io" | bash
+  fi
+fi
+
+block-manager "$DIR/../lib/rc-sdk.sh" "$HOME/.zshrc" "sdkman"
+. "$HOME/.zshrc"
+
+# Install scala via SDKMAN (skip if already installed)
+if command -v sdk 2>&1 >/dev/null; then
+  sdk list scala 2>/dev/null | grep -q "2.13.12" || sdk install scala 2.13.12
+fi
+
+section_footer "SDKMAN setup"

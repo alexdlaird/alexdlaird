@@ -1,11 +1,10 @@
 #!/usr/bin/env zsh
 
 DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
 . "$HOME/.zshrc"
 
-echo "---------------------------------------------"
-echo " Initializing pyenv ..."
-echo "---------------------------------------------"
+section_header "Initializing pyenv"
 
 block-manager "$DIR/../lib/rc-pyenv.sh" "$HOME/.zshrc" "pyenv"
 . "$HOME/.zshrc"
@@ -25,6 +24,4 @@ if ! command -v raspi-config 2>&1 >/dev/null; then
   pyenv versions --bare | grep -q "^pypy3\.10" || pyenv install pypy3.10
 fi
 
-echo "---------------------------------------------"
-echo " ... finished pyenv setup"
-echo "---------------------------------------------"
+section_footer "pyenv setup"

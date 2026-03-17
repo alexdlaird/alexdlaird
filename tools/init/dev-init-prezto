@@ -1,8 +1,9 @@
 #!/usr/bin/env zsh
 
-echo "---------------------------------------------"
-echo " Initializing prezto ..."
-echo "---------------------------------------------"
+DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing prezto"
 
 if [ -d "$HOME/.zprezto" ]; then
   echo "--> Prezto already installed, updating..."
@@ -18,6 +19,4 @@ else
   done
 fi
 
-echo "---------------------------------------------"
-echo " ... finished prezto setup"
-echo "---------------------------------------------"
+section_footer "prezto setup"

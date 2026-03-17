@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 
-echo "---------------------------------------------"
-echo " Initializing brew ..."
-echo "---------------------------------------------"
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing brew"
 
 if ! command -v brew 2>&1 >/dev/null; then
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  if [[ "$INTERACTIVE" != "true" ]]; then
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  else
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
 fi
 
 . "$DIR/../lib/rc-brew.sh"
 
+brew tap hashicorp/tap
 brew tap twilio/brew
 
 brew install zsh vim tmux \
@@ -21,15 +26,9 @@ brew install zsh vim tmux \
              docker docker-completion sqlite \
              ffmpeg bento4 gettext grep gnu-sed wget curl \
              openssl@3 ca-certificates gpg \
-             awscli gh twilio terraform
+             awscli gh twilio hashicorp/tap/terraform
 
 brew install --cask android-commandlinetools
-
-brew uninstall --cask flutter 2>/dev/null || true
-
-if ! command -v fvm 2>&1 >/dev/null; then
-  dart pub global activate fvm
-fi
 
 # Symlink autoenv (skip if already exists)
 if [[ ! -L "$HOME/.autoenv" ]]; then
@@ -39,6 +38,4 @@ fi
 . "$DIR/../lib/rc-nvm.sh"
 nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20
 
-echo "---------------------------------------------"
-echo " ... finished brew setup"
-echo "---------------------------------------------"
+section_footer "brew setup"
