@@ -29,8 +29,8 @@ git config --global user.name "Alex Laird"
 git config --global user.email "contact@alexlaird.com"
 block-manager "$DIR/../lib/.gitignore_global" "$HOME/.gitignore_global" "alexdlaird-gitignore"
 
-# Initialize vim config
-block-manager "$DIR/../lib/.vimrc" "$HOME/.vimrc" "alexdlaird-vimrc"
+# Initialize vim config (use " for vim comments)
+block-manager "$DIR/../lib/.vimrc" "$HOME/.vimrc" "alexdlaird-vimrc" '"'
 
 # Initialize hosts
 HOSTS_FILE="$DIR/../env/hosts"
