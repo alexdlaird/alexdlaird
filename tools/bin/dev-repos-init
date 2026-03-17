@@ -85,23 +85,19 @@ def symlink(source, dest):
 
 CLAUDE_DIR = os.path.join(DEVELOPER_DIR, "private-dev", "claude")
 
-symlink(os.path.join(CLAUDE_DIR, "CLAUDE.md"),
-        os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md")))
+if os.path.isdir(CLAUDE_DIR):
+    global_claude = os.path.join(CLAUDE_DIR, "CLAUDE.md")
+    if os.path.exists(global_claude):
+        symlink(global_claude, os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md")))
 
-symlink(os.path.join(CLAUDE_DIR, "projects", "helium.md"),
-        os.path.join(DEVELOPER_DIR, "helium", ".claude", "CLAUDE.md"))
-
-symlink(os.path.join(CLAUDE_DIR, "projects", "helium-frontend.md"),
-        os.path.join(DEVELOPER_DIR, "helium", "projects", "frontend", ".claude", "CLAUDE.md"))
-
-symlink(os.path.join(CLAUDE_DIR, "projects", "helium-platform.md"),
-        os.path.join(DEVELOPER_DIR, "helium", "projects", "platform", ".claude", "CLAUDE.md"))
-
-symlink(os.path.join(CLAUDE_DIR, "projects", "pyngrok.md"),
-        os.path.join(DEVELOPER_DIR, "pyngrok", ".claude", "CLAUDE.md"))
-
-symlink(os.path.join(CLAUDE_DIR, "projects", "java-ngrok.md"),
-        os.path.join(DEVELOPER_DIR, "java-ngrok", ".claude", "CLAUDE.md"))
+    projects_dir = os.path.join(CLAUDE_DIR, "projects")
+    if os.path.isdir(projects_dir):
+        for filename in os.listdir(projects_dir):
+            if filename.endswith(".md"):
+                source = os.path.join(projects_dir, filename)
+                relative_path = filename[:-3].replace(".", os.sep)
+                dest = os.path.join(DEVELOPER_DIR, relative_path, ".claude", "CLAUDE.md")
+                symlink(source, dest)
 
 print("---------------------------------------------")
 print(" ... finished repos setup")
