@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
 
-
 OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
 . "$HOME/.zshrc"
 
 if [[ "$(uname -m)" == "x86_64" ]]; then
@@ -11,12 +11,9 @@ else
   OS_ARCH="arm64"
 fi
 
-echo "---------------------------------------------"
-echo " Initializing jenv ..."
-echo "---------------------------------------------"
+section_header "Initializing jenv"
 
 block-manager "$DIR/../lib/rc-jenv.sh" "$HOME/.zshrc" "jenv"
-block-manager "$DIR/../lib/rc-sdk.sh" "$HOME/.zshrc" "sdkman"
 . "$HOME/.zshrc"
 
 echo "--> JDK 1.8 must be installed and configured manually, if it is needed"
@@ -45,11 +42,7 @@ else
     jenv_add_if_missing /usr/lib/jvm/java-8-openjdk-$OS_ARCH
     jenv_add_if_missing /usr/lib/jvm/java-11-openjdk-$OS_ARCH
     jenv_add_if_missing /usr/lib/jvm/java-21-openjdk-$OS_ARCH
-
-    sdk list scala 2>/dev/null | grep -q "2.13.12" || sdk install scala 2.13.12
   fi
 fi
 
-echo "---------------------------------------------"
-echo " ... finished jenv setup"
-echo "---------------------------------------------"
+section_footer "jenv setup"

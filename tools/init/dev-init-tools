@@ -2,10 +2,9 @@
 
 OS_NAME=$(uname -s)
 DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
 
-echo "---------------------------------------------"
-echo " Initializing other tools ..."
-echo "---------------------------------------------"
+section_header "Initializing dev tools/dotfiles"
 
 # Add alexdlaird/bin to path
 "$DIR/../bin/block-manager" "$DIR/../lib/rc-alexdlaird-bin.sh" "$HOME/.zshrc" "alexdlaird-bin"
@@ -39,6 +38,4 @@ if [ -f "$HOSTS_FILE" ]; then
   block-manager "$HOSTS_FILE" "/etc/hosts" "alexdlaird-hosts"
 fi
 
-echo "---------------------------------------------"
-echo " ... finished tools setup"
-echo "---------------------------------------------"
+section_footer "dev tools/dotfiles setup"

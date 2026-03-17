@@ -1,11 +1,10 @@
 #!/usr/bin/env zsh
 
 DIR="$( dirname "$0" )"
+. "$DIR/../lib/init-helpers.sh"
 . "$HOME/.zshrc"
 
-echo "---------------------------------------------"
-echo " Initializing node ..."
-echo "---------------------------------------------"
+section_header "Initializing nvm/Node"
 
 block-manager "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc" "nvm"
 . "$HOME/.zshrc"
@@ -14,6 +13,4 @@ block-manager "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc" "nvm"
 nvm ls 18 2>/dev/null | grep -q "v18" || nvm install 18
 nvm ls 22 2>/dev/null | grep -q "v22" || nvm install 22
 
-echo "---------------------------------------------"
-echo " ... finished node setup"
-echo "---------------------------------------------"
+section_footer "nvm/Node setup"

@@ -1,20 +1,26 @@
 #!/usr/bin/env bash
 
-echo "---------------------------------------------"
-echo " Initializing Raspberry Pi ..."
-echo "---------------------------------------------"
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing Raspberry Pi"
+
+# Set apt flags based on interactive mode
+APT_FLAGS=""
+if [[ "$INTERACTIVE" != "true" ]]; then
+  APT_FLAGS="-y"
+fi
 
 sudo apt-get update
 sudo apt-get install wget curl apt-transport-https gnupg software-properties-common -yqq
 
 sudo apt-get update
-sudo apt-get install --ignore-missing \
+sudo apt-get install $APT_FLAGS --ignore-missing \
                      zsh vim tmux wget curl \
                      python3 python3-dev libjpeg-dev \
                      maven openjdk-17-jdk \
                      ffmpeg vlc libmp3lame0 \
                      openssl ca-certificates
-sudo apt-get autoremove
+sudo apt-get autoremove $APT_FLAGS
 
 if ! command -v pyenv 2>&1 >/dev/null; then
   # Install pyenv
@@ -31,6 +37,4 @@ if [ ! -d "$HOME/.autoenv" ]; then
   wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
 fi
 
-echo "---------------------------------------------"
-echo " ... finished Raspberry Pi setup"
-echo "---------------------------------------------"
+section_footer "Raspberry Pi setup"

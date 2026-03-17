@@ -3,40 +3,75 @@
 OS_NAME=$(uname -s)
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# Export INTERACTIVE so child scripts can use it
+export INTERACTIVE=${INTERACTIVE:-true}
+
+. "$DIR/../lib/init-helpers.sh"
+
 echo "============================================="
 echo " Initializing $OS_NAME ..."
+if [[ "$INTERACTIVE" != "true" ]]; then
+  echo " (unattended mode)"
+fi
 echo "============================================="
 
-if [[ "$OS_NAME" == "Darwin" ]]; then
-  . "$DIR/dev-init-mac-brew"
-elif [[ "$OS_NAME" == "Linux" ]]; then
-  if [ -f "/etc/debian_version" ]; then
-    if command -v raspi-config 2>&1 >/dev/null; then
-      . "$DIR/dev-init-pi"
+# 1. System packages (brew/apt) - all or nothing, prompt once
+if confirm "Install system packages (brew/apt)?"; then
+  if [[ "$OS_NAME" == "Darwin" ]]; then
+    . "$DIR/dev-init-mac-brew"
+  elif [[ "$OS_NAME" == "Linux" ]]; then
+    if [ -f "/etc/debian_version" ]; then
+      if command -v raspi-config 2>&1 >/dev/null; then
+        . "$DIR/dev-init-pi"
+      else
+        . "$DIR/dev-init-debian"
+      fi
     else
-      . "$DIR/dev-init-debian"
+      echo "!!> Operating system not supported for automatic provisioning"
+      exit 1
     fi
   else
     echo "!!> Operating system not supported for automatic provisioning"
     exit 1
   fi
-else
-  echo "!!> Operating system not supported for automatic provisioning"
-  exit 1
 fi
 
+# 2. Shell framework (prezto) - always runs, no prompt
 chsh -s /bin/zsh
-
 zsh "$DIR/dev-init-prezto"
 
-zsh "$DIR/dev-init-tools"
+# 3. Dev tools/dotfiles - all or nothing, prompt once
+if confirm "Configure dev tools and dotfiles?"; then
+  zsh "$DIR/dev-init-tools"
+fi
 
-zsh "$DIR/dev-init-pyenv"
+# 4. Python (pyenv) - all or nothing, prompt once
+if confirm "Install Python environment (pyenv)?"; then
+  zsh "$DIR/dev-init-pyenv"
+fi
 
-zsh "$DIR/dev-init-jenv"
+# 5. Java (jenv) - all or nothing, prompt once
+if confirm "Install Java environment (jenv)?"; then
+  zsh "$DIR/dev-init-jenv"
+fi
 
-if ! command -v nvm 2>&1 >/dev/null; then
+# 6. SDKMAN (scala) - all or nothing, prompt once (non-Pi only)
+if ! command -v raspi-config 2>&1 >/dev/null; then
+  if confirm "Install SDKMAN (Scala)?"; then
+    zsh "$DIR/dev-init-sdkman"
+  fi
+fi
+
+# 7. Node (nvm) - all or nothing, prompt once
+if confirm "Install Node environment (nvm)?"; then
   zsh "$DIR/dev-init-nvm"
+fi
+
+# 8. Flutter (fvm) - all or nothing, prompt once (non-Pi only)
+if ! command -v raspi-config 2>&1 >/dev/null; then
+  if confirm "Install Flutter environment (fvm)?"; then
+    zsh "$DIR/dev-init-flutter"
+  fi
 fi
 
 echo "============================================="

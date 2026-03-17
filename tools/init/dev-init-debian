@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 
-echo "---------------------------------------------"
-echo " Initializing Debian ..."
-echo "---------------------------------------------"
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing Debian"
+
+# Set apt flags based on interactive mode
+APT_FLAGS=""
+if [[ "$INTERACTIVE" != "true" ]]; then
+  APT_FLAGS="-y"
+fi
 
 sudo apt-get update
-sudo apt-get upgrade
+sudo apt-get upgrade $APT_FLAGS
 sudo apt-get install wget curl zip unzip apt-transport-https gnupg software-properties-common -yqq
 
 # Provision apt for Docker
@@ -36,7 +42,7 @@ https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
   | sudo tee /etc/apt/sources.list.d/hashicorp.list
 
 sudo apt-get update
-sudo apt-get install --ignore-missing \
+sudo apt-get install $APT_FLAGS --ignore-missing \
                      zsh vim tmux cifs-utils net-tools \
                      python3 python-is-python3 \
                      python3-dev python3-openssl libjpeg-dev libssl-dev build-essential zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev \
@@ -46,10 +52,10 @@ sudo apt-get install --ignore-missing \
                      sqlite3 lcov \
                      openssl ca-certificates \
                      gh terraform
-sudo apt-get autoremove
+sudo apt-get autoremove $APT_FLAGS
 
-sudo usermod -aG audio alexdlaird
-sudo usermod -aG video alexdlaird
+sudo usermod -aG audio $USER
+sudo usermod -aG video $USER
 
 if ! command -v aws 2>&1 >/dev/null; then
   # Install aws
@@ -64,16 +70,6 @@ if ! command -v twilio 2>&1 >/dev/null; then
   curl -L "https://runtime-cli-redirect-6533.twil.io/redirect-to-github?ext=.deb" -o "twilio.deb"
   sudo apt-get install ./twilio.deb
   sudo rm twilio.deb
-fi
-
-if ! command -v sdk 2>&1 >/dev/null; then
-  # Install sdk
-  curl -s "https://get.sdkman.io" | bash
-fi
-
-if ! sdk list scala 2>&1 | grep -q "2.13"; then
-  # Install scala
-  sdk install scala 2.13
 fi
 
 if ! command -v pyenv 2>&1 >/dev/null; then
@@ -98,15 +94,4 @@ fi
 
 nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20
 
-if ! command -v flutter 2>&1 >/dev/null; then
-  # Install Flutter SDK
-  sudo snap install flutter --classic
-fi
-
-if ! command -v fvm 2>&1 >/dev/null; then
-  dart pub global activate fvm
-fi
-
-echo "---------------------------------------------"
-echo " ... finished Debian setup"
-echo "---------------------------------------------"
+section_footer "Debian setup"
