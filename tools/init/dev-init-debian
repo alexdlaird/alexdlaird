@@ -92,4 +92,9 @@ if ! command -v nvm 2>&1 >/dev/null; then
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 fi
 
+if ! command -v dart 2>&1 >/dev/null; then
+  # Install Dart SDK (for fvm)
+  sudo snap install dart --classic
+fi
+
 section_footer "Debian setup"
