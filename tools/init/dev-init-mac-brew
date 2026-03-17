@@ -35,7 +35,4 @@ if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
 fi
 
-. "$DIR/../lib/rc-nvm.sh"
-nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20
-
 section_footer "brew setup"
