@@ -92,6 +92,4 @@ if ! command -v nvm 2>&1 >/dev/null; then
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 fi
 
-nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20
-
 section_footer "Debian setup"
