@@ -42,7 +42,8 @@ sudo apt-get install --ignore-missing \
                      python3-dev python3-openssl libjpeg-dev libssl-dev build-essential zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev \
                      maven sbt openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk openjdk-21-jdk \
                      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
-                     ffmpeg gettext vlc libmp3lame0 alsa-utils v4l-utils \
+                     ffmpeg gettext imagemagick vlc libmp3lame0 alsa-utils v4l-utils \
+                     sqlite3 lcov \
                      openssl ca-certificates \
                      gh terraform
 sudo apt-get autoremove
@@ -70,6 +71,11 @@ if ! command -v sdk 2>&1 >/dev/null; then
   curl -s "https://get.sdkman.io" | bash
 fi
 
+if ! sdk list scala 2>&1 | grep -q "2.13"; then
+  # Install scala
+  sdk install scala 2.13
+fi
+
 if ! command -v pyenv 2>&1 >/dev/null; then
   # Install pyenv
   curl -fsSL https://pyenv.run | bash
@@ -88,6 +94,17 @@ fi
 if ! command -v nvm 2>&1 >/dev/null; then
   # Install nvm
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+fi
+
+nvm install 20
+
+if ! command -v flutter 2>&1 >/dev/null; then
+  # Install Flutter SDK
+  sudo snap install flutter --classic
+fi
+
+if ! command -v fvm 2>&1 >/dev/null; then
+  dart pub global activate fvm
 fi
 
 echo "---------------------------------------------"
