@@ -8,34 +8,35 @@ echo " Initializing other tools ..."
 echo "---------------------------------------------"
 
 # Add alexdlaird/bin to path
-"$DIR/../bin/file-appender" "$DIR/../lib/rc-alexdlaird-bin.sh" "$HOME/.zshrc"
+"$DIR/../bin/block-manager" "$DIR/../lib/rc-alexdlaird-bin.sh" "$HOME/.zshrc" "alexdlaird-bin"
 . "$HOME/.zshrc"
 
 if [[ "$OS_NAME" == "Darwin" ]]; then
-  file-appender "$DIR/../lib/rc-brew.sh" "$HOME/.zshrc"
+  block-manager "$DIR/../lib/rc-brew.sh" "$HOME/.zshrc" "brew"
 fi
 
-file-appender "$DIR/../lib/rc-autoenv.sh" "$HOME/.zshrc"
+block-manager "$DIR/../lib/rc-autoenv.sh" "$HOME/.zshrc" "autoenv"
 
 # Add preferred editors to profile
-file-appender "$DIR/../lib/rc-editors.sh" "$HOME/.zshrc"
+block-manager "$DIR/../lib/rc-editors.sh" "$HOME/.zshrc" "editors"
 
 # Install public SSH key
-file-appender "$DIR/../lib/id_rsa.pub" "$HOME/.ssh/authorized_keys"
+mkdir -p "$HOME/.ssh"
+block-manager "$DIR/../lib/id_rsa.pub" "$HOME/.ssh/authorized_keys" "alexdlaird-pubkey"
 
 # Initialize Git configs
 git config --global core.excludesFile "$HOME/.gitignore_global"
 git config --global user.name "Alex Laird"
 git config --global user.email "contact@alexlaird.com"
-file-appender "$DIR/../lib/.gitignore_global" "$HOME/.gitignore_global"
+block-manager "$DIR/../lib/.gitignore_global" "$HOME/.gitignore_global" "alexdlaird-gitignore"
 
 # Initialize vim config
-file-appender "$DIR/../lib/.vimrc" "$HOME/.vimrc"
+block-manager "$DIR/../lib/.vimrc" "$HOME/.vimrc" "alexdlaird-vimrc"
 
 # Initialize hosts
 HOSTS_FILE="$DIR/../env/hosts"
 if [ -f "$HOSTS_FILE" ]; then
-  file-appender "$HOSTS_FILE" "/etc/hosts"
+  block-manager "$HOSTS_FILE" "/etc/hosts" "alexdlaird-hosts"
 fi
 
 echo "---------------------------------------------"

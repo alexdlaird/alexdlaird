@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+
+# block-manager - Manage marked blocks in configuration files
+#
+# Usage:
+#   block-manager <source-file> <dest-file> <block-name>
+#   block-manager --remove <block-name> <dest-file>
+#
+# This tool manages "owned" blocks in destination files using markers:
+#   # >>> managed: <block-name> >>>
+#   ... content ...
+#   # <<< managed: <block-name> <<<
+#
+# When adding/updating:
+#   - If the block exists, it is replaced entirely
+#   - If the block doesn't exist, it is appended
+#   - Variables like $HOME are expanded at write time
+#
+# When removing:
+#   - The block and its markers are removed from the dest file
+
+set -e
+
+START_MARKER="# >>> managed:"
+END_MARKER="# <<< managed:"
+
+usage() {
+  cat <<EOF
+Usage:
+  block-manager <source-file> <dest-file> <block-name>
+      Add or update a managed block in dest-file with contents from source-file
+
+  block-manager --remove <block-name> <dest-file>
+      Remove a managed block from dest-file
+
+Blocks are marked with:
+  # >>> managed: <block-name> >>>
+  ... content ...
+  # <<< managed: <block-name> <<<
+
+EOF
+  exit 1
+}
+
+remove_block() {
+  local block_name="$1"
+  local dest_file="$2"
+
+  if [[ ! -f "$dest_file" ]]; then
+    echo "File not found: $dest_file"
+    exit 1
+  fi
+
+  local start_pattern="$START_MARKER $block_name >>>"
+  local end_pattern="$END_MARKER $block_name <<<"
+
+  if ! grep -q "$start_pattern" "$dest_file"; then
+    echo "--> Block '$block_name' not found in $dest_file (nothing to remove)"
+    return 0
+  fi
+
+  # Remove the block (start marker through end marker, inclusive)
+  local temp_file
+  temp_file=$(mktemp)
+  awk -v start="$start_pattern" -v end="$end_pattern" '
+    $0 ~ start { skip = 1; next }
+    $0 ~ end { skip = 0; next }
+    !skip { print }
+  ' "$dest_file" > "$temp_file"
+
+  mv "$temp_file" "$dest_file"
+  echo "--> Removed block '$block_name' from $dest_file"
+}
+
+add_or_update_block() {
+  local source_file="$1"
+  local dest_file="$2"
+  local block_name="$3"
+
+  if [[ ! -f "$source_file" ]]; then
+    echo "Source file not found: $source_file"
+    exit 1
+  fi
+
+  # Create dest file if it doesn't exist
+  if [[ ! -f "$dest_file" ]]; then
+    mkdir -p "$(dirname "$dest_file")"
+    touch "$dest_file"
+  fi
+
+  local start_pattern="$START_MARKER $block_name >>>"
+  local end_pattern="$END_MARKER $block_name <<<"
+
+  # Read and expand variables in source content
+  local expanded_content
+  expanded_content=$(envsubst < "$source_file")
+
+  # Check if content has changed (if block exists)
+  if grep -q "$start_pattern" "$dest_file"; then
+    # Extract existing block content
+    local existing_content
+    existing_content=$(awk -v start="$start_pattern" -v end="$end_pattern" '
+      $0 ~ start { capture = 1; next }
+      $0 ~ end { capture = 0; next }
+      capture { print }
+    ' "$dest_file")
+
+    if [[ "$existing_content" == "$expanded_content" ]]; then
+      echo "--> Block '$block_name' in $dest_file is up to date"
+      return 0
+    fi
+
+    # Replace existing block
+    local temp_file
+    temp_file=$(mktemp)
+    awk -v start="$start_pattern" -v end="$end_pattern" -v content="$expanded_content" -v startline="$start_pattern" -v endline="$end_pattern" '
+      $0 ~ start {
+        print startline
+        print content
+        skip = 1
+        next
+      }
+      $0 ~ end {
+        print endline
+        skip = 0
+        next
+      }
+      !skip { print }
+    ' "$dest_file" > "$temp_file"
+
+    mv "$temp_file" "$dest_file"
+    echo "--> Updated block '$block_name' in $dest_file"
+  else
+    # Append new block
+    {
+      echo ""
+      echo "$start_pattern"
+      echo "$expanded_content"
+      echo "$end_pattern"
+    } >> "$dest_file"
+    echo "--> Added block '$block_name' to $dest_file"
+  fi
+}
+
+# Parse arguments
+if [[ $# -lt 2 ]]; then
+  usage
+fi
+
+if [[ "$1" == "--remove" ]]; then
+  if [[ $# -ne 3 ]]; then
+    usage
+  fi
+  remove_block "$2" "$3"
+else
+  if [[ $# -ne 3 ]]; then
+    usage
+  fi
+  add_or_update_block "$1" "$2" "$3"
+fi

@@ -7,21 +7,22 @@ echo "---------------------------------------------"
 echo " Initializing pyenv ..."
 echo "---------------------------------------------"
 
-file-appender "$DIR/../lib/rc-pyenv.sh" "$HOME/.zshrc"
+block-manager "$DIR/../lib/rc-pyenv.sh" "$HOME/.zshrc" "pyenv"
 . "$HOME/.zshrc"
 
-pyenv install 3.12
+# Install Python versions (skip if already installed)
+pyenv versions --bare | grep -q "^3\.12" || pyenv install 3.12
 pyenv global 3.12
 
-python -m pip install pyngrok amazon-orders hookee heliumcli \
+python -m pip install --quiet pyngrok amazon-orders hookee heliumcli \
                       GitPython Flask pytest coverage mypy Sphinx \
                       plexapi
 
 if ! command -v raspi-config 2>&1 >/dev/null; then
-  pyenv install 2.7
-  pyenv install 3.6
-  pyenv install 3.9
-  pyenv install pypy3.10
+  pyenv versions --bare | grep -q "^2\.7" || pyenv install 2.7
+  pyenv versions --bare | grep -q "^3\.6" || pyenv install 3.6
+  pyenv versions --bare | grep -q "^3\.9" || pyenv install 3.9
+  pyenv versions --bare | grep -q "^pypy3\.10" || pyenv install pypy3.10
 fi
 
 echo "---------------------------------------------"
