@@ -7,11 +7,12 @@ echo "---------------------------------------------"
 echo " Initializing node ..."
 echo "---------------------------------------------"
 
-file-appender "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc"
+block-manager "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc" "nvm"
 . "$HOME/.zshrc"
 
-nvm install 18
-nvm install 22
+# Install Node versions (skip if already installed)
+nvm ls 18 2>/dev/null | grep -q "v18" || nvm install 18
+nvm ls 22 2>/dev/null | grep -q "v22" || nvm install 22
 
 echo "---------------------------------------------"
 echo " ... finished node setup"

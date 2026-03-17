@@ -4,16 +4,19 @@ echo "---------------------------------------------"
 echo " Initializing prezto ..."
 echo "---------------------------------------------"
 
-if [ ! -d "$HOME/.zprezto" ]; then
+if [ -d "$HOME/.zprezto" ]; then
+  echo "--> Prezto already installed, updating..."
+  git -C "$HOME/.zprezto" pull
+  git -C "$HOME/.zprezto" submodule update --init --recursive
+else
   rm -f $HOME/.zshrc
+  git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
+
+  setopt EXTENDED_GLOB
+  for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
+    ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
+  done
 fi
-
-git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
-
-setopt EXTENDED_GLOB
-for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
-  ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
-done
 
 echo "---------------------------------------------"
 echo " ... finished prezto setup"

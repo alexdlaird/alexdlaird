@@ -31,10 +31,13 @@ if ! command -v fvm 2>&1 >/dev/null; then
   dart pub global activate fvm
 fi
 
-ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
+# Symlink autoenv (skip if already exists)
+if [[ ! -L "$HOME/.autoenv" ]]; then
+  ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
+fi
 
 . "$DIR/../lib/rc-nvm.sh"
-nvm install 20
+nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20
 
 echo "---------------------------------------------"
 echo " ... finished brew setup"
