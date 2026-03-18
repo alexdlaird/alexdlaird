@@ -24,7 +24,7 @@ mkdir -p "$HOME/.ssh"
 block-manager "$DIR/../lib/id_rsa.pub" "$HOME/.ssh/authorized_keys" "alexdlaird-pubkey"
 
 # Initialize Git configs
-git config --global core.excludesFile "$HOME/.gitignore_global"
+git config --global --replace-all core.excludesFile "$HOME/.gitignore_global"
 git config --global user.name "Alex Laird"
 git config --global user.email "contact@alexlaird.com"
 block-manager "$DIR/../lib/.gitignore_global" "$HOME/.gitignore_global" "alexdlaird-gitignore"
