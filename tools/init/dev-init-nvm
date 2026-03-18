@@ -7,7 +7,7 @@ DIR="$( dirname "$0" )"
 section_header "Initializing nvm/Node"
 
 block-manager "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc" "nvm"
-. "$HOME/.zshrc"
+. "$DIR/../lib/rc-nvm.sh"
 
 # Install Node versions (skip if already installed)
 nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20

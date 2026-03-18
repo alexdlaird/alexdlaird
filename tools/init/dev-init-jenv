@@ -14,7 +14,7 @@ fi
 section_header "Initializing jenv"
 
 block-manager "$DIR/../lib/rc-jenv.sh" "$HOME/.zshrc" "jenv"
-. "$HOME/.zshrc"
+. "$DIR/../lib/rc-jenv.sh"
 
 echo "--> JDK 1.8 must be installed and configured manually, if it is needed"
 
