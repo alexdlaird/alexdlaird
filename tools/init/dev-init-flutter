@@ -14,7 +14,7 @@ fi
 
 # Add pub-cache bin to PATH
 block-manager "$DIR/../lib/rc-dart.sh" "$HOME/.zshrc" "dart"
-. "$HOME/.zshrc"
+. "$DIR/../lib/rc-dart.sh"
 
 # Install fvm if not present
 if ! command -v fvm 2>&1 >/dev/null; then

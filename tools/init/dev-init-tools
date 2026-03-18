@@ -8,7 +8,7 @@ section_header "Initializing dev tools/dotfiles"
 
 # Add alexdlaird/bin to path
 "$DIR/../bin/block-manager" "$DIR/../lib/rc-alexdlaird-bin.sh" "$HOME/.zshrc" "alexdlaird-bin"
-. "$HOME/.zshrc"
+. "$DIR/../lib/rc-alexdlaird-bin.sh"
 
 if [[ "$OS_NAME" == "Darwin" ]]; then
   block-manager "$DIR/../lib/rc-brew.sh" "$HOME/.zshrc" "brew"

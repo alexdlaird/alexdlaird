@@ -7,7 +7,7 @@ DIR="$( dirname "$0" )"
 section_header "Initializing pyenv"
 
 block-manager "$DIR/../lib/rc-pyenv.sh" "$HOME/.zshrc" "pyenv"
-. "$HOME/.zshrc"
+. "$DIR/../lib/rc-pyenv.sh"
 
 # Install Python versions (skip if already installed)
 pyenv versions --bare | grep -q "^3\.12" || pyenv install 3.12
