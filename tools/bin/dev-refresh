@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+
+# Background task runner for periodic maintenance tasks.
+# Runs on terminal open, executes tasks if their interval has elapsed.
+#
+# Usage: dev-refresh [--force] [--verbose]
+#   --force:   Run all tasks regardless of last run time
+#   --verbose: Output to console instead of log file
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_DIR="$SCRIPT_DIR/../env/refresh"
+LOCK_FILE="$LOG_DIR/.lock"
+LOG_FILE="$LOG_DIR/refresh.log"
+
+mkdir -p "$LOG_DIR"
+
+# Task definitions: name|interval_seconds|command
+# Add new periodic tasks here
+TASKS=(
+  "repos-pull|86400|$SCRIPT_DIR/dev-repos-pull"
+)
+
+VERBOSE=false
+
+log() {
+  local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+  if [[ "$VERBOSE" == "true" ]]; then
+    echo "$msg"
+  else
+    echo "$msg" >> "$LOG_FILE"
+  fi
+}
+
+cleanup() {
+  rm -f "$LOCK_FILE"
+}
+
+should_run_task() {
+  local task_name="$1"
+  local interval="$2"
+  local timestamp_file="$LOG_DIR/.last_$task_name"
+
+  if [[ "$FORCE" == "true" ]]; then
+    return 0
+  fi
+
+  if [[ ! -f "$timestamp_file" ]]; then
+    return 0
+  fi
+
+  local last_run
+  last_run=$(cat "$timestamp_file")
+  local now
+  now=$(date +%s)
+  local elapsed=$((now - last_run))
+
+  [[ $elapsed -ge $interval ]]
+}
+
+mark_task_complete() {
+  local task_name="$1"
+  local timestamp_file="$LOG_DIR/.last_$task_name"
+  date +%s > "$timestamp_file"
+}
+
+run_tasks() {
+  local ran_any=false
+
+  for task_def in "${TASKS[@]}"; do
+    IFS='|' read -r task_name interval command <<< "$task_def"
+
+    if should_run_task "$task_name" "$interval"; then
+      log "Running task: $task_name"
+      ran_any=true
+
+      local task_log="$LOG_DIR/$task_name.log"
+      if [[ "$VERBOSE" == "true" ]]; then
+        if $command 2>&1; then
+          mark_task_complete "$task_name"
+          log "Task completed: $task_name"
+        else
+          log "Task failed: $task_name (exit code: $?)"
+        fi
+      elif $command >> "$task_log" 2>&1; then
+        mark_task_complete "$task_name"
+        log "Task completed: $task_name"
+      else
+        log "Task failed: $task_name (exit code: $?)"
+      fi
+    fi
+  done
+
+  if [[ "$ran_any" == "false" ]]; then
+    log "No tasks needed to run"
+  fi
+}
+
+# Parse arguments
+FORCE=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --force)
+      FORCE=true
+      shift
+      ;;
+    --verbose|-v)
+      VERBOSE=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Acquire lock (non-blocking)
+if [[ -f "$LOCK_FILE" ]]; then
+  pid=$(cat "$LOCK_FILE" 2>/dev/null || echo "")
+  if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+    exit 0
+  fi
+fi
+
+echo $$ > "$LOCK_FILE"
+trap cleanup EXIT
+
+log "dev-refresh started"
+run_tasks
+log "dev-refresh finished"

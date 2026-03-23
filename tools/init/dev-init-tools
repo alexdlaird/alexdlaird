@@ -10,6 +10,9 @@ section_header "Initializing dev tools/dotfiles"
 "$DIR/../bin/block-manager" "$DIR/../lib/rc-alexdlaird-bin.sh" "$HOME/.zshrc" "alexdlaird-bin"
 . "$DIR/../lib/rc-alexdlaird-bin.sh"
 
+# Run background refresh tasks on terminal open
+block-manager "$DIR/../lib/rc-refresh.sh" "$HOME/.zshrc" "refresh"
+
 if [[ "$OS_NAME" == "Darwin" ]]; then
   block-manager "$DIR/../lib/rc-brew.sh" "$HOME/.zshrc" "brew"
 fi
