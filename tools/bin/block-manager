@@ -78,6 +78,7 @@ add_or_update_block() {
   expanded_content=$(HOME="$HOME" envsubst '${HOME}' < "$source_file")
 
   # Check if block exists
+  local action="added"
   if grep -qF "$start_pattern" "$dest_file"; then
     # Extract existing block content for comparison
     local existing_content
@@ -93,9 +94,7 @@ add_or_update_block() {
     temp_file=$(mktemp)
     sed "/$start_pattern/,/$end_pattern/d" "$dest_file" > "$temp_file"
     mv "$temp_file" "$dest_file"
-    echo "--> Updated block '$block_name' in $dest_file"
-  else
-    echo "--> Added block '$block_name' to $dest_file"
+    action="updated"
   fi
 
   # Append the block
@@ -105,6 +104,12 @@ add_or_update_block() {
     echo "$expanded_content"
     echo "$end_pattern"
   } >> "$dest_file"
+
+  if [[ "$action" == "added" ]]; then
+    echo "--> Added block '$block_name' to $dest_file"
+  else
+    echo "--> Updated block '$block_name' in $dest_file"
+  fi
 }
 
 # Parse arguments
