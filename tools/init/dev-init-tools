@@ -38,7 +38,7 @@ block-manager "$DIR/../lib/.vimrc" "$HOME/.vimrc" "alexdlaird-vimrc" '"'
 # Initialize hosts
 HOSTS_FILE="$DIR/../env/hosts"
 if [ -f "$HOSTS_FILE" ]; then
-  block-manager "$HOSTS_FILE" "/etc/hosts" "alexdlaird-hosts"
+  sudo block-manager "$HOSTS_FILE" "/etc/hosts" "alexdlaird-hosts"
 fi
 
 section_footer "dev tools/dotfiles setup"
