@@ -1,8 +1,39 @@
 #!/usr/bin/env python
 
+import atexit
 import os
+import sys
 
 import git
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOCK_FILE = os.path.join(SCRIPT_DIR, "..", "env", "refresh", ".lock_repos-pull")
+
+
+def acquire_lock():
+    os.makedirs(os.path.dirname(LOCK_FILE), exist_ok=True)
+    if os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE) as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 0)
+            print("Another instance of dev-repos-pull is already running.")
+            sys.exit(0)
+        except (ValueError, ProcessLookupError, FileNotFoundError):
+            pass
+    with open(LOCK_FILE, "w") as f:
+        f.write(str(os.getpid()))
+    atexit.register(release_lock)
+
+
+def release_lock():
+    try:
+        os.remove(LOCK_FILE)
+    except FileNotFoundError:
+        pass
+
+
+acquire_lock()
 
 DIRS = [
     os.path.expanduser(os.path.join("~", "Developer")),
