@@ -1,7 +1,5 @@
 Hello 👋, and welcome! Here you will find the source code for many of my projects.
 
----
-
 ### Featured Projects
 
 <table>
