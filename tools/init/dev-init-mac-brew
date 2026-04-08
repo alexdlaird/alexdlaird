@@ -27,7 +27,7 @@ brew install zsh vim tmux \
              docker docker-completion sqlite \
              ffmpeg bento4 gettext grep gnu-sed wget curl \
              openssl@3 ca-certificates gpg \
-             awscli gh twilio hashicorp/tap/terraform
+             awscli awslogs gh twilio hashicorp/tap/terraform
 
 brew install --cask android-commandlinetools
 
