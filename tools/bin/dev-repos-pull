@@ -52,6 +52,9 @@ for tld in DIRS:
             try:
                 repo = git.Repo(os.path.join(tld, dir_name))
                 repo.git_dir
+                if repo.is_dirty(untracked_files=False):
+                    print(f" -> Skipping {dir_name} (dirty working tree)")
+                    continue
                 print(f" -> Fetching {dir_name} ...")
                 repo.git.fetch(tags=True, prune=True, force=True)
                 repo.git.pull()
