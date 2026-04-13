@@ -1,6 +1,6 @@
 # cortex
 
-`cortext` is my AI playground, using a RTX 5090 to melt the shelf its on in my office closet.
+`cortext` is my AI playground, housing a RTX 5090 to melt the shelf it's on in my office closet.
 It uses RAG (Retrieval-Augmented Generation) tooling to power a local coding assistant, built on
 [Ollama](https://ollama.com) and [Qdrant](https://qdrant.tech).
 
@@ -28,7 +28,16 @@ OLLAMA_BASE_URL = "http://localhost:11434"
 EMBED_MODEL = "nomic-embed-text"
 COLLECTION_NAME = "my-rag"
 
-CODE_EXTENSIONS = [".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".dart", ".sh"]
+CODE_EXTENSIONS = [
+    # Application code
+    ".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".scala", ".dart", ".sh",
+    # Web/styling
+    ".html", ".css", ".scss",
+    # Config/build
+    ".yaml", ".yml", ".toml", ".xml", ".properties", ".gradle", ".conf",
+    # Infrastructure
+    ".tf", ".hcl",
+]
 DOC_EXTENSIONS = [".md", ".rst", ".txt"]
 
 # Local repo paths (relative to DEVELOPER_DIR) to ingest
