@@ -90,4 +90,31 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
     ghcr.io/open-webui/open-webui:main
 fi
 
+# Provision RAG and fine-tuning Makefiles into private-dev
+PRIVATE_CORTEX="$HOME/Developer/private-dev/servers/cortex"
+ln -sf "$DIR/../cortex/rag/Makefile" "$PRIVATE_CORTEX/rag/Makefile"
+ln -sf "$DIR/../cortex/finetune/Makefile" "$PRIVATE_CORTEX/finetune/Makefile"
+
+# Install fine-tuning dependencies (Unsloth, HuggingFace)
+if ! python -c "import unsloth" 2>/dev/null; then
+  CUDA_VER=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | tr -d '.')
+  TORCH_VER=$(python -c "import torch; v=torch.__version__; print(v[:v.index('+')] if '+' in v else v)" 2>/dev/null | tr -d '.')
+  echo "--> Installing Unsloth for CUDA ${CUDA_VER}, torch ${TORCH_VER}"
+  pip install torch --index-url "https://download.pytorch.org/whl/cu${CUDA_VER}"
+  pip install "unsloth" trl datasets huggingface_hub
+fi
+
+# Prompt for HuggingFace login if not already authenticated
+if ! huggingface-cli whoami 2>/dev/null; then
+  echo ""
+  echo "!!> HuggingFace login required to download gated models (e.g. Gemma 4)."
+  echo "    Accept the model license at: https://huggingface.co/google/gemma-4-27b-it"
+  echo "    Then create a token at: https://huggingface.co/settings/tokens"
+  if [[ "$INTERACTIVE" == "true" ]]; then
+    huggingface-cli login
+  else
+    echo "!!> Skipping HuggingFace login in unattended mode — run 'huggingface-cli login' manually."
+  fi
+fi
+
 section_footer "AI setup"
