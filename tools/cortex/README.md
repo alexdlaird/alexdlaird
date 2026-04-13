@@ -1,6 +1,6 @@
 # cortex 🤖
 
-`cortext` is my AI playground, housing a RTX 5090 to melt the shelf it's on in my office closet.
+`cortex` is my AI playground, housing a RTX 5090 to melt the shelf it's on in my office closet.
 It uses RAG (Retrieval-Augmented Generation) tooling to power a local coding assistant, built on
 [Ollama](https://ollama.com) and [Qdrant](https://qdrant.tech).
 
