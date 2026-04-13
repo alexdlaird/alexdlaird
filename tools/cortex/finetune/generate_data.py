@@ -12,11 +12,11 @@ sys.path.insert(0, str(Path.cwd()))
 import requests
 from qdrant_client import QdrantClient
 
-from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL
+from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATH, SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = (
+GENERATION_PROMPT = (
     "You are a coding assistant. Given a code or documentation chunk, generate ONE clear "
     "technical question a developer might ask about it, and a thorough answer. "
     'Respond ONLY with valid JSON: {"question": "...", "answer": "..."}'
@@ -45,6 +45,27 @@ def scroll_chunks(client, collection, sample_every):
             break
 
 
+def load_seed_pairs(seed_path):
+    pairs = []
+    if not seed_path or not seed_path.exists():
+        return pairs
+    with open(seed_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                pairs.append(json.loads(line))
+            except Exception:
+                pass
+    return pairs
+
+
+def inject_system_prompt(record):
+    convs = [c for c in record.get("conversations", []) if c.get("from") != "system"]
+    return {"conversations": [{"from": "system", "value": SYSTEM_PROMPT}] + convs}
+
+
 def generate_pair(chunk_text, ollama_base_url, model):
     try:
         response = requests.post(
@@ -53,7 +74,7 @@ def generate_pair(chunk_text, ollama_base_url, model):
                 "model": model,
                 "stream": False,
                 "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": GENERATION_PROMPT},
                     {"role": "user", "content": chunk_text},
                 ],
             },
@@ -73,10 +94,14 @@ def generate_pair(chunk_text, ollama_base_url, model):
 
 
 def to_sharegpt(question, answer):
-    return {"conversations": [{"from": "human", "value": question}, {"from": "gpt", "value": answer}]}
+    return {"conversations": [
+        {"from": "system", "value": SYSTEM_PROMPT},
+        {"from": "human", "value": question},
+        {"from": "gpt", "value": answer},
+    ]}
 
 
-def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append):
+def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if append else "w"
 
@@ -86,7 +111,9 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
             for line in f:
                 try:
                     record = json.loads(line)
-                    seen_questions.add(record["conversations"][0]["value"])
+                    q = next((c["value"] for c in record["conversations"] if c["from"] == "human"), None)
+                    if q:
+                        seen_questions.add(q)
                 except Exception:
                     pass
 
@@ -94,6 +121,16 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
     total, skipped, written = 0, 0, 0
 
     with open(output_path, mode) as out:
+        if not append:
+            seed_pairs = load_seed_pairs(seed_path)
+            for record in seed_pairs:
+                q = next((c["value"] for c in record.get("conversations", []) if c["from"] == "human"), None)
+                if q:
+                    seen_questions.add(q)
+                out.write(json.dumps(inject_system_prompt(record)) + "\n")
+            if seed_pairs:
+                logger.info(f"Prepended {len(seed_pairs)} seed pairs from {seed_path}")
+
         for chunk_text in scroll_chunks(client, collection, sample_every):
             if limit and total >= limit:
                 break
@@ -141,4 +178,5 @@ if __name__ == "__main__":
         ollama_base_url=OLLAMA_BASE_URL,
         model=args.ollama_model,
         append=args.append,
+        seed_path=SEED_DATA_PATH,
     )
