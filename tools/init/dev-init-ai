@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing AI"
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo "!!> AI environment setup is only supported on Linux"
+  return 0 2>/dev/null || exit 1
+fi
+
+PRIMARY_NETWORK="192.168.86"
+
+# Verify VLAN isolation before continuing
+current_ip=$(hostname -I | awk '{print $1}')
+while [[ "$current_ip" == ${PRIMARY_NETWORK}.* ]]; do
+  echo ""
+  echo "!!> cortex appears to be on the primary network (${current_ip})."
+  echo "    Configure an isolated VLAN, and only install AI models in"
+  echo "    that isolated environment. Set this up at the router/switch,"
+  echo "    then renew the IP:"
+  echo "      sudo dhclient -r && sudo dhclient"
+  if [[ "$INTERACTIVE" != "true" ]]; then
+    echo "!!> Cannot continue in unattended mode without VLAN isolation."
+    return 0 2>/dev/null || exit 1
+  fi
+  read -p "    Press Enter to recheck... "
+  current_ip=$(hostname -I | awk '{print $1}')
+done
+
+# Set apt flags based on interactive mode
+APT_FLAGS=""
+if [[ "$INTERACTIVE" != "true" ]]; then
+  APT_FLAGS="-y"
+fi
+
+# Install NVIDIA driver (reboot required before continuing)
+if ! command -v nvidia-smi 2>&1 >/dev/null; then
+  sudo apt-get install $APT_FLAGS nvidia-driver-560 nvidia-utils-560
+  echo ""
+  echo "!!> NVIDIA driver installed. A reboot is required before CUDA and Ollama can be set up."
+  echo "!!> Please reboot, then rerun this script to complete AI setup."
+  return 0 2>/dev/null || exit 0
+fi
+
+# Install CUDA toolkit
+if ! command -v nvcc 2>&1 >/dev/null; then
+  sudo apt-get install $APT_FLAGS nvidia-cuda-toolkit
+fi
+
+# Install Ollama
+if ! command -v ollama 2>&1 >/dev/null; then
+  curl -fsSL https://ollama.com/install.sh | sh
+fi
+
+# Pull models
+ollama pull gemma4
+
+section_footer "AI setup"
