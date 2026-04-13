@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
-from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH
+from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +17,6 @@ PARAMETER stop "<end_of_turn>"
 PARAMETER stop "<start_of_turn>"
 SYSTEM \"\"\"{system_prompt}\"\"\"
 """
-
-SYSTEM_PROMPT = "You are a coding assistant with deep knowledge of the user's codebases and standards."
 
 
 def export(adapter_path, output_path, quant, model_name):
