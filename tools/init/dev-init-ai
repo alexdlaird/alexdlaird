@@ -55,7 +55,39 @@ if ! command -v ollama 2>&1 >/dev/null; then
   curl -fsSL https://ollama.com/install.sh | sh
 fi
 
+# Configure Ollama to listen on all interfaces (required for Docker containers)
+if [[ ! -f /etc/systemd/system/ollama.service.d/override.conf ]]; then
+  sudo mkdir -p /etc/systemd/system/ollama.service.d
+  printf '[Service]\nEnvironment="OLLAMA_HOST=0.0.0.0"\n' \
+    | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null
+  sudo systemctl daemon-reload
+  sudo systemctl restart ollama
+fi
+
 # Pull models
 ollama pull gemma4
+ollama pull nomic-embed-text
+
+# Start Qdrant
+if ! docker ps -a --format '{{.Names}}' | grep -q '^qdrant$'; then
+  docker run -d \
+    --name qdrant \
+    --restart unless-stopped \
+    -p 6333:6333 \
+    -p 6334:6334 \
+    -v "$HOME/qdrant_storage:/qdrant/storage:z" \
+    qdrant/qdrant
+fi
+
+# Start Open WebUI
+if ! docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
+  docker run -d \
+    --name open-webui \
+    --restart unless-stopped \
+    --add-host=host.docker.internal:host-gateway \
+    -p 3000:8080 \
+    -v open-webui:/app/backend/data \
+    ghcr.io/open-webui/open-webui:main
+fi
 
 section_footer "AI setup"
