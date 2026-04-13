@@ -21,5 +21,5 @@ Hello 👋, and welcome! Here you will find the source code for many of my proje
 
 ➡ If you're interested in what I use in my development environment 💻, and how I provision it 🚀, head
 over to [`tools`](https://github.com/alexdlaird/alexdlaird/blob/main/tools/README.md#useful-dev-tools)!\
-➡ Looking for my AI-machinations? Check out [`cortex`](https://github.com/alexdlaird/alexdlaird/blob/main/tools/corext/README.md)! \
+➡ Looking for my AI-machinations? Check out [`cortex`](https://github.com/alexdlaird/alexdlaird/blob/main/tools/corext/README.md) 🤖. \
 ➡ If you'd like to support my work ❤️, you can do so through [Patreon 🙌🏻](https://www.patreon.com/alexdlaird/membership) or [PayPal 👏🏻](https://www.paypal.com/paypalme/alexdlaird).
