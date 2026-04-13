@@ -35,3 +35,9 @@ Some of my favorite terminal packages that `install.sh` sets up include:
 - [`vim`](https://www.vim.org/) - Terminal text editor
 
 Happy coding!
+
+## Local AI Tooling
+
+I build and run my own local AI model called [`cortex 🤖`](https://github.com/alexdlaird/alexdlaird/blob/main/tools/cortex/README.md), 
+provisioned with [`dev-init-ai`](https://github.com/alexdlaird/alexdlaird/blob/main/tools/init/dev-init-ai). Feel free to check out my tooling setup there if you're
+interested in something similar!
