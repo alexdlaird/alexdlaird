@@ -72,12 +72,12 @@ if ! command -v twilio 2>&1 >/dev/null; then
   sudo rm twilio.deb
 fi
 
-if ! command -v pyenv 2>&1 >/dev/null; then
+if [ ! -d "$HOME/.pyenv" ]; then
   # Install pyenv
   curl -fsSL https://pyenv.run | bash
 fi
 
-if ! command -v jenv 2>&1 >/dev/null; then
+if [ ! -d "$HOME/.jenv" ]; then
   # Install jenv
   git clone https://github.com/jenv/jenv.git $HOME/.jenv
 fi
