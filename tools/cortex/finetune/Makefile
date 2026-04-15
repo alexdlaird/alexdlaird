@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean generate-data generate-data-sample train train-merge export register
+.PHONY: all install nopyc clean fetch-blog pretrain-tone pretrain-tone-resume generate-data generate-data-sample train train-merge export register
 
 SHELL := /usr/bin/env bash
 PYTHON_BIN    ?= python
@@ -27,6 +27,24 @@ nopyc:
 
 clean: nopyc
 	rm -rf $(PROJECT_VENV)
+
+fetch-blog: install
+	@( \
+		source $(PROJECT_VENV)/bin/activate; \
+		python $(TOOLS_CORTEX)/finetune/fetch_blog.py; \
+	)
+
+pretrain-tone: install
+	@( \
+		source $(PROJECT_VENV)/bin/activate; \
+		python $(TOOLS_CORTEX)/finetune/pretrain_tone.py; \
+	)
+
+pretrain-tone-resume: install
+	@( \
+		source $(PROJECT_VENV)/bin/activate; \
+		python $(TOOLS_CORTEX)/finetune/pretrain_tone.py --resume; \
+	)
 
 generate-data: install
 	@( \
