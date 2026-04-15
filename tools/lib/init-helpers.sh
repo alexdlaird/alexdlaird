@@ -17,6 +17,17 @@ confirm() {
   [[ -z "$response" || "$response" =~ ^[Yy] ]]
 }
 
+# Prompt for confirmation, defaulting to no. Returns 0 (true) only if explicitly confirmed.
+# Usage: confirm_n "Install X?" && do_something
+confirm_n() {
+  local prompt="$1"
+  if [[ "$INTERACTIVE" != "true" ]]; then
+    return 1
+  fi
+  read -p "$prompt [y/N] " response
+  [[ "$response" =~ ^[Yy] ]]
+}
+
 # Print section header
 section_header() {
   echo "---------------------------------------------"

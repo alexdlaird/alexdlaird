@@ -32,7 +32,13 @@ fi
 
 # Install NVIDIA driver (reboot required before continuing)
 if ! command -v nvidia-smi 2>&1 >/dev/null; then
-  sudo apt-get install $APT_FLAGS nvidia-driver-560 nvidia-utils-560
+  sudo apt-get install $APT_FLAGS ubuntu-drivers-common
+  sudo ubuntu-drivers install
+  if ! command -v nvidia-smi 2>&1 >/dev/null; then
+    echo ""
+    echo "!!> NVIDIA driver installation failed. Check 'sudo ubuntu-drivers list' and install manually."
+    return 0 2>/dev/null || exit 1
+  fi
   echo ""
   echo "!!> NVIDIA driver installed. A reboot is required before CUDA and Ollama can be set up."
   echo "!!> Please reboot, then rerun this script to complete AI setup."

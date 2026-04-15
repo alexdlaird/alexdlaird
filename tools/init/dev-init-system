@@ -76,7 +76,7 @@ fi
 
 # 9. AI environment (Ollama) - Linux only
 if [[ "$OS_NAME" == "Linux" ]]; then
-  if confirm "Install AI environment (Ollama)?"; then
+  if confirm_n "Install AI environment (Ollama)?"; then
     . "$DIR/dev-init-ai"
   fi
 fi
