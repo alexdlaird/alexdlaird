@@ -109,7 +109,7 @@ fi
 if ! hf auth whoami 2>/dev/null; then
   echo ""
   echo "!!> HuggingFace login required to download gated models (e.g. Gemma 4)."
-  echo "    Accept the model license at: https://huggingface.co/google/gemma-4-27b-it"
+  echo "    Accept the model license at: https://huggingface.co/google/gemma-4-31B-it"
   echo "    Then create a token at: https://huggingface.co/settings/tokens"
   if [[ "$INTERACTIVE" == "true" ]]; then
     hf auth login

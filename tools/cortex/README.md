@@ -94,8 +94,8 @@ OLLAMA_BASE_URL   = "http://localhost:11434"
 COLLECTION_NAME   = "my-rag"
 OLLAMA_CHAT_MODEL = "gemma4"
 
-# Requires accepting the license at huggingface.co/google/gemma-4-27b-it
-HF_MODEL_ID = "google/gemma-4-27b-it"
+# Requires accepting the license at huggingface.co/google/gemma-4-31B-it
+HF_MODEL_ID = "google/gemma-4-31B-it"
 
 MAX_SEQ_LENGTH = 2048
 
