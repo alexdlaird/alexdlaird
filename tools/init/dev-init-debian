@@ -56,6 +56,7 @@ sudo apt-get autoremove $APT_FLAGS
 
 sudo usermod -aG audio $USER
 sudo usermod -aG video $USER
+sudo usermod -aG docker $USER
 
 if ! command -v aws 2>&1 >/dev/null; then
   # Install aws
