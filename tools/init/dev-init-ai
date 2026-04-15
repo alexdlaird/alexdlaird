@@ -11,24 +11,18 @@ if [[ "$(uname -s)" != "Linux" ]]; then
   return 0 2>/dev/null || exit 1
 fi
 
-PRIMARY_NETWORK="192.168.86"
+# Disable sleep/suspend (AI workstation should never sleep)
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' 2>/dev/null || true
 
-# Verify VLAN isolation before continuing
-current_ip=$(hostname -I | awk '{print $1}')
-while [[ "$current_ip" == ${PRIMARY_NETWORK}.* ]]; do
-  echo ""
-  echo "!!> cortex appears to be on the primary network (${current_ip})."
-  echo "    Configure an isolated VLAN, and only install AI models in"
-  echo "    that isolated environment. Set this up at the router/switch,"
-  echo "    then renew the IP:"
-  echo "      sudo dhclient -r && sudo dhclient"
-  if [[ "$INTERACTIVE" != "true" ]]; then
-    echo "!!> Cannot continue in unattended mode without VLAN isolation."
-    return 0 2>/dev/null || exit 1
-  fi
-  read -p "    Press Enter to recheck... "
-  current_ip=$(hostname -I | awk '{print $1}')
-done
+# Configure firewall: allow SSH from anywhere on LAN, block outgoing to LAN, allow internet
+if ! sudo ufw status | grep -q "Status: active"; then
+  sudo ufw allow 22/tcp
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw deny out to 192.168.86.0/22
+  sudo ufw enable
+fi
 
 # Set apt flags based on interactive mode
 APT_FLAGS=""
