@@ -106,15 +106,15 @@ if ! python -c "import unsloth" 2>/dev/null; then
 fi
 
 # Prompt for HuggingFace login if not already authenticated
-if ! huggingface-cli whoami 2>/dev/null; then
+if ! hf auth whoami 2>/dev/null; then
   echo ""
   echo "!!> HuggingFace login required to download gated models (e.g. Gemma 4)."
   echo "    Accept the model license at: https://huggingface.co/google/gemma-4-27b-it"
   echo "    Then create a token at: https://huggingface.co/settings/tokens"
   if [[ "$INTERACTIVE" == "true" ]]; then
-    huggingface-cli login
+    hf auth login
   else
-    echo "!!> Skipping HuggingFace login in unattended mode — run 'huggingface-cli login' manually."
+    echo "!!> Skipping HuggingFace login in unattended mode — run 'hf auth login' manually."
   fi
 fi
 
