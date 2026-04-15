@@ -6,3 +6,4 @@ datasets
 huggingface_hub
 qdrant-client
 requests
+beautifulsoup4
