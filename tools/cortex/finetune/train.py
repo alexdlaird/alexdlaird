@@ -1,6 +1,8 @@
 __copyright__ = "Copyright (c) 2026 Alex Laird"
 __license__ = "MIT"
 
+import unsloth  # noqa: F401 — must be imported before trl/transformers/peft
+
 import argparse
 import logging
 import sys
