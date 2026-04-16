@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean ingest rebuild search
+.PHONY: all install nopyc clean ingest search
 
 SHELL := /usr/bin/env bash
 PYTHON_BIN ?= python
@@ -26,13 +26,6 @@ clean: nopyc
 	rm -rf $(PROJECT_VENV)
 
 ingest: install
-	@( \
-		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/ingest/repos.py; \
-		python $(TOOLS_CORTEX)/ingest/docs.py; \
-	)
-
-rebuild: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/ingest/repos.py --rebuild; \
