@@ -31,6 +31,17 @@ brew install zsh vim tmux \
 
 brew install --cask android-commandlinetools
 
+# Install aider (AI coding assistant) pointed at cortex Ollama
+if ! command -v aider 2>&1 >/dev/null; then
+  pip install aider-chat
+fi
+if [[ ! -f "$HOME/.aider.conf.yml" ]]; then
+  cat > "$HOME/.aider.conf.yml" <<EOF
+model: ollama/cortex
+ollama-api-base: http://cortex:11434
+EOF
+fi
+
 # Symlink autoenv (skip if already exists)
 if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
