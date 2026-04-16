@@ -38,7 +38,7 @@ fi
 if [[ ! -f "$HOME/.aider.conf.yml" ]]; then
   cat > "$HOME/.aider.conf.yml" <<EOF
 model: ollama/cortex
-ollama-api-base: http://cortex:11434
+openai-api-base: http://cortex:11434
 EOF
 fi
 
