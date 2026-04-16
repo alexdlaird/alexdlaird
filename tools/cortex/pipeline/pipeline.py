@@ -34,10 +34,13 @@ class Pipeline:
         self._retriever = None
 
     async def on_startup(self):
-        self._init_retriever()
+        try:
+            self._init_retriever()
+        except Exception as e:
+            print(f"Warning: retriever init failed at startup ({e}), will retry on first request")
 
     async def on_valves_updated(self):
-        self._init_retriever()
+        self._retriever = None
 
     def _init_retriever(self):
         Settings.embed_model = OllamaEmbedding(
