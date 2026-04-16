@@ -135,6 +135,7 @@ if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
     wget -q --show-progress -O "$SD_MODEL_DIR/$SD_MODEL" "$SD_MODEL_URL"
   fi
   if [[ ! -f /etc/systemd/system/sd-webui.service ]]; then
+    CUDA_VER=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | tr -d '.')
     sudo tee /etc/systemd/system/sd-webui.service > /dev/null <<EOF
 [Unit]
 Description=Stable Diffusion Web UI (AUTOMATIC1111)
@@ -144,7 +145,8 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$SD_DIR
-ExecStart=$SD_DIR/webui.sh --api --listen --nowebui --skip-torch-cuda-test
+Environment="TORCH_COMMAND=pip install torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_VER}"
+ExecStart=$SD_DIR/webui.sh --api --listen --nowebui --skip-python-version-check
 Restart=on-failure
 RestartSec=10
 
