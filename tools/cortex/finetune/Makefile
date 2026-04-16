@@ -5,7 +5,7 @@ PYTHON_BIN    ?= python
 PROJECT_VENV  ?= venv
 TOOLS_CORTEX  ?= $(HOME)/Developer/alexdlaird/tools/cortex
 QUANT         ?= q4_k_m
-MODEL_NAME    ?= cortex-ft
+MODEL_NAME    ?= cortex
 
 all: install
 
