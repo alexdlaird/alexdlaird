@@ -165,27 +165,83 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
     logger.info(f"Done — {written} pairs written to {output_path} ({skipped} skipped out of {total} chunks)")
 
 
+def prompt_run_config(collection, qdrant_url):
+    """Interactively prompt the user for validation vs full run and sample-every size."""
+    response = requests.get(f"{qdrant_url}/collections/{collection}", timeout=10)
+    response.raise_for_status()
+    info = response.json().get("result", {})
+    total_points = info.get("points_count") or info.get("indexed_vectors_count", 0)
+
+    print(f"\nQdrant collection '{collection}' has {total_points:,} chunks.")
+    print("\nRun a validation set first? [Y/n] ", end="", flush=True)
+    val = input().strip().lower()
+    if val in ("", "y"):
+        return 10, 200
+
+    secs_per_chunk = 3
+    print(f"\nEstimated times at ~{secs_per_chunk}s/chunk:")
+    for n in [1, 10, 25, 50, 100, 200]:
+        chunks = total_points // n
+        hours = (chunks * secs_per_chunk) / 3600
+        print(f"  --sample-every {n:>3}  →  ~{chunks:>7,} chunks  (~{hours:.1f}h)")
+
+    print(f"\nEnter --sample-every value (or 1 for full set): ", end="", flush=True)
+    sample_every = int(input().strip() or "50")
+    return sample_every, 0
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     parser = argparse.ArgumentParser(description="Generate ShareGPT training data from RAG corpus.")
     parser.add_argument("--limit", type=int, default=0, help="Max chunks to process (0 = all)")
-    parser.add_argument("--sample-every", type=int, default=1, help="Take every Nth chunk (default: 1 = all)")
+    parser.add_argument("--sample-every", type=int, default=None, help="Take every Nth chunk (skips interactive prompt)")
     parser.add_argument("--output", type=Path, default=None, help="Output JSONL path")
     parser.add_argument("--collection", default=COLLECTION_NAME, help="Qdrant collection name")
     parser.add_argument("--ollama-model", default=OLLAMA_CHAT_MODEL, help="Ollama model for generation")
     parser.add_argument("--append", action="store_true", help="Append to existing output instead of overwriting")
+    parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
 
     output_path = args.output or (FINETUNE_DATA_DIR / "sharegpt.jsonl")
 
-    generate_data(
-        collection=args.collection,
-        limit=args.limit,
-        sample_every=args.sample_every,
-        output_path=output_path,
-        ollama_base_url=OLLAMA_BASE_URL,
-        model=args.ollama_model,
-        append=args.append,
-        seed_path=SEED_DATA_PATHS,
-    )
+    if args.sample_every is not None:
+        sample_every = args.sample_every
+        limit = args.limit
+    else:
+        sample_every, limit = prompt_run_config(args.collection, QDRANT_URL)
+
+    if not args.bg:
+        # Re-launch self in background with resolved args
+        import os
+        import subprocess
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        log_path = log_dir / "generate-data.log"
+        cmd = [
+            sys.executable, __file__,
+            "--sample-every", str(sample_every),
+            "--collection", args.collection,
+            "--ollama-model", args.ollama_model,
+            "--output", str(output_path),
+            "--bg",
+        ]
+        if limit:
+            cmd += ["--limit", str(limit)]
+        if args.append:
+            cmd += ["--append"]
+        with open(log_path, "w") as log_file:
+            proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
+        print(f"\n--> generate-data running in background (PID {proc.pid}), tailing log ...")
+        os.execlp("tail", "tail", "-f", str(log_path))
+    else:
+        generate_data(
+            collection=args.collection,
+            limit=limit,
+            sample_every=sample_every,
+            output_path=output_path,
+            ollama_base_url=OLLAMA_BASE_URL,
+            model=args.ollama_model,
+            append=args.append,
+            seed_path=SEED_DATA_PATHS,
+        )
