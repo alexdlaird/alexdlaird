@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean ingest search
+.PHONY: all install nopyc clean ingest search refresh
 
 SHELL := /usr/bin/env bash
 PYTHON_BIN ?= python
@@ -38,3 +38,7 @@ search: install
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/query/search.py --top-k $(TOP_K) $(if $(filter true,$(INCLUDE_TESTS)),--include-tests,) "$(QUERY)"; \
 	)
+
+refresh:
+	docker cp $(TOOLS_CORTEX)/pipeline/pipeline.py pipelines:/app/pipelines/pipeline.py
+	docker restart pipelines
