@@ -18,6 +18,7 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'no
 # Configure firewall: allow SSH and web UI, block outgoing to LAN, allow internet
 sudo ufw allow 22/tcp
 sudo ufw allow 3000/tcp
+sudo ufw allow 11434/tcp
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw deny out to 192.168.86.0/22
