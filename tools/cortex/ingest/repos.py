@@ -58,7 +58,7 @@ def load_repo(path: Path, extensions: list[str]):
             input_dir=str(path),
             recursive=True,
             required_exts=extensions,
-            exclude=["**/__pycache__/**", "**/.git/**", "**/node_modules/**", "**/.venv/**", "**/build/**"],
+            exclude=["**/__pycache__/**", "**/.git/**", "**/node_modules/**", "**/.venv/**", "**/venv/**", "**/build/**"],
         ).load_data()
     except Exception:
         logger.warning(f"No matching files found in {path}, skipping.")
