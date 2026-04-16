@@ -126,7 +126,9 @@ if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
   SD_MODEL="sd_xl_base_1.0.safetensors"
   SD_MODEL_URL="https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
   if [[ ! -d "$SD_DIR" ]]; then
-    sudo apt-get install $APT_FLAGS git python3 python3-venv libgl1 libglib2.0-0
+    sudo add-apt-repository ppa:deadsnakes/ppa -y
+    sudo apt-get update
+    sudo apt-get install $APT_FLAGS git python3.10 python3.10-venv libgl1 libglib2.0-0
     git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui "$SD_DIR"
   fi
   if [[ ! -f "$SD_MODEL_DIR/$SD_MODEL" ]]; then
@@ -145,6 +147,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$SD_DIR
+Environment="PYTHON_CMD=python3.10"
 Environment="TORCH_COMMAND=pip install torch==2.7.0+cu${CUDA_VER} torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_VER}"
 ExecStart=$SD_DIR/webui.sh --api --listen --nowebui --skip-python-version-check
 Restart=on-failure
