@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path.cwd()))
 import requests
 from qdrant_client import QdrantClient
 
-from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATH, SYSTEM_PROMPT
+from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATHS, SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -122,14 +122,15 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
 
     with open(output_path, mode) as out:
         if not append:
-            seed_pairs = load_seed_pairs(seed_path)
-            for record in seed_pairs:
-                q = next((c["value"] for c in record.get("conversations", []) if c["from"] == "human"), None)
-                if q:
-                    seen_questions.add(q)
-                out.write(json.dumps(inject_system_prompt(record)) + "\n")
-            if seed_pairs:
-                logger.info(f"Prepended {len(seed_pairs)} seed pairs from {seed_path}")
+            for path in (seed_path if isinstance(seed_path, list) else [seed_path]):
+                seed_pairs = load_seed_pairs(path)
+                for record in seed_pairs:
+                    q = next((c["value"] for c in record.get("conversations", []) if c["from"] == "human"), None)
+                    if q:
+                        seen_questions.add(q)
+                    out.write(json.dumps(inject_system_prompt(record)) + "\n")
+                if seed_pairs:
+                    logger.info(f"Prepended {len(seed_pairs)} seed pairs from {path}")
 
         for chunk_text in scroll_chunks(client, collection, sample_every):
             if limit and total >= limit:
@@ -178,5 +179,5 @@ if __name__ == "__main__":
         ollama_base_url=OLLAMA_BASE_URL,
         model=args.ollama_model,
         append=args.append,
-        seed_path=SEED_DATA_PATH,
+        seed_path=SEED_DATA_PATHS,
     )
