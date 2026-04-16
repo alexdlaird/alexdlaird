@@ -42,6 +42,11 @@ search: install
 refresh:
 	docker cp $(TOOLS_CORTEX)/pipeline/pipeline.py pipelines:/app/pipelines/pipeline.py
 	docker restart pipelines
+	until docker logs pipelines 2>&1 | grep -q "Loaded module: pipeline"; do sleep 3; done
+	docker restart open-webui
 
 restart:
-	docker restart $$(docker ps -aq --filter "network=cortex")
+	docker restart qdrant
+	docker restart pipelines
+	until docker logs pipelines 2>&1 | grep -q "Loaded module: pipeline"; do sleep 3; done
+	docker restart open-webui
