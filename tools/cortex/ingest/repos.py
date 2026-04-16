@@ -40,8 +40,10 @@ def build_client_and_store(rebuild: bool) -> tuple[QdrantClient, QdrantVectorSto
     if rebuild and client.collection_exists(COLLECTION_NAME):
         logger.info(f"Deleting existing collection: {COLLECTION_NAME}")
         client.delete_collection(COLLECTION_NAME)
+        logger.info("Collection deleted.")
 
     if not client.collection_exists(COLLECTION_NAME):
+        logger.info(f"Creating collection: {COLLECTION_NAME}")
         client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=VectorParams(size=768, distance=Distance.COSINE),
@@ -81,12 +83,13 @@ def ingest_repos(repos: list[str], rebuild: bool) -> None:
 
         docs = load_repo(repo_path, CODE_EXTENSIONS + DOC_EXTENSIONS)
         if docs:
+            logger.info(f"  Found {len(docs)} files, embedding ...")
             VectorStoreIndex.from_documents(
                 docs,
                 storage_context=storage_context,
                 transformations=[splitter],
             )
-            logger.info(f"  Indexed {len(docs)} files from {repo}")
+            logger.info(f"  Done.")
 
 
 if __name__ == "__main__":
