@@ -44,4 +44,4 @@ refresh:
 	docker restart pipelines
 
 restart:
-	docker restart qdrant pipelines open-webui
+	docker restart $$(docker ps -aq --filter "network=cortex")
