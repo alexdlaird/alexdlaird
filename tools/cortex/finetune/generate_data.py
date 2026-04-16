@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path.cwd()))
 
 import requests
 from qdrant_client import QdrantClient
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATHS, SYSTEM_PROMPT
 
@@ -24,9 +25,12 @@ GENERATION_PROMPT = (
 )
 
 
-def scroll_chunks(client, collection, sample_every):
+def scroll_chunks(client, collection, sample_every, include_tests=False):
     offset = None
     index = 0
+    scroll_filter = None if include_tests else Filter(
+        must=[FieldCondition(key="chunk_type", match=MatchValue(value="source"))]
+    )
     while True:
         points, offset = client.scroll(
             collection_name=collection,
@@ -34,6 +38,7 @@ def scroll_chunks(client, collection, sample_every):
             offset=offset,
             with_payload=True,
             with_vectors=False,
+            scroll_filter=scroll_filter,
         )
         for point in points:
             if index % sample_every == 0:
@@ -109,7 +114,7 @@ def to_sharegpt(question, answer):
     ]}
 
 
-def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path):
+def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path, include_tests=False):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if append else "w"
 
@@ -140,7 +145,7 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
                 if seed_pairs:
                     logger.info(f"Prepended {len(seed_pairs)} seed pairs from {path}")
 
-        for chunk_text in scroll_chunks(client, collection, sample_every):
+        for chunk_text in scroll_chunks(client, collection, sample_every, include_tests=include_tests):
             if limit and total >= limit:
                 break
             total += 1
@@ -165,12 +170,16 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
     logger.info(f"Done — {written} pairs written to {output_path} ({skipped} skipped out of {total} chunks)")
 
 
-def prompt_run_config(collection, qdrant_url):
+def prompt_run_config(collection, qdrant_url, include_tests=False):
     """Interactively prompt the user for validation vs full run and sample-every size."""
-    response = requests.get(f"{qdrant_url}/collections/{collection}", timeout=10)
-    response.raise_for_status()
-    info = response.json().get("result", {})
-    total_points = info.get("points_count") or info.get("indexed_vectors_count", 0)
+    client = QdrantClient(url=qdrant_url)
+    if include_tests:
+        total_points = client.count(collection_name=collection).count
+    else:
+        total_points = client.count(
+            collection_name=collection,
+            count_filter=Filter(must=[FieldCondition(key="chunk_type", match=MatchValue(value="source"))]),
+        ).count
 
     print(f"\nQdrant collection '{collection}' has {total_points:,} chunks.")
     print("\nRun a validation set first? [Y/n] ", end="", flush=True)
@@ -200,6 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("--collection", default=COLLECTION_NAME, help="Qdrant collection name")
     parser.add_argument("--ollama-model", default=OLLAMA_CHAT_MODEL, help="Ollama model for generation")
     parser.add_argument("--append", action="store_true", help="Append to existing output instead of overwriting")
+    parser.add_argument("--include-tests", action="store_true", help="Include test file chunks in training data")
     parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
 
@@ -209,7 +219,7 @@ if __name__ == "__main__":
         sample_every = args.sample_every
         limit = args.limit
     else:
-        sample_every, limit = prompt_run_config(args.collection, QDRANT_URL)
+        sample_every, limit = prompt_run_config(args.collection, QDRANT_URL, include_tests=args.include_tests)
 
     if not args.bg:
         # Re-launch self in background with resolved args
@@ -230,6 +240,8 @@ if __name__ == "__main__":
             cmd += ["--limit", str(limit)]
         if args.append:
             cmd += ["--append"]
+        if args.include_tests:
+            cmd += ["--include-tests"]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         print(f"\n--> generate-data running in background (PID {proc.pid}), tailing log ...")
@@ -244,4 +256,5 @@ if __name__ == "__main__":
             model=args.ollama_model,
             append=args.append,
             seed_path=SEED_DATA_PATHS,
+            include_tests=args.include_tests,
         )
