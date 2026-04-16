@@ -90,7 +90,9 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
     --restart unless-stopped \
     --add-host=host.docker.internal:host-gateway \
     -p 9099:9099 \
-    -v "$PIPELINE_DIR:/app/pipelines" \
+    -e PIPELINES_REQUIREMENTS_PATH=/app/pipelines/requirements.txt \
+    -v "$PIPELINE_DIR/pipeline.py:/app/pipelines/pipeline.py" \
+    -v "$PIPELINE_DIR/requirements.txt:/app/pipelines/requirements.txt" \
     ghcr.io/open-webui/pipelines:main
 else
   echo "--> pipelines already exists, skipping (recreate manually if pipeline files changed)"
