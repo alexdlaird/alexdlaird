@@ -16,7 +16,7 @@ venv:
 install: venv
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
-		pip install -r $(TOOLS_CORTEX)/requirements.txt; \
+		pip install -r $(TOOLS_CORTEX)/rag/requirements.txt; \
 	)
 
 nopyc:
