@@ -66,3 +66,4 @@ export: install
 register:
 	ollama create $(MODEL_NAME) -f $$($(PROJECT_VENV)/bin/python -c \
 		"from config import FINETUNE_OUTPUT_DIR; print(FINETUNE_OUTPUT_DIR / 'gguf' / 'Modelfile')")
+	docker restart pipelines
