@@ -145,7 +145,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$SD_DIR
-Environment="TORCH_COMMAND=pip install torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_VER}"
+Environment="TORCH_COMMAND=pip install torch==2.7.0+cu${CUDA_VER} torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_VER}"
 ExecStart=$SD_DIR/webui.sh --api --listen --nowebui --skip-python-version-check
 Restart=on-failure
 RestartSec=10
