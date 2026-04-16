@@ -113,20 +113,80 @@ else
   echo "--> pipelines already exists, skipping (recreate manually if pipeline files changed)"
 fi
 
+# Install AUTOMATIC1111 (Stable Diffusion web UI for image generation)
+INSTALL_IMAGE_GEN=false
+if [[ "$INTERACTIVE" == "true" ]]; then
+  read -r -p "Install image generation support (AUTOMATIC1111 + SDXL, ~6.9GB)? [y/N] " _img_reply
+  [[ "$_img_reply" =~ ^[Yy] ]] && INSTALL_IMAGE_GEN=true
+fi
+if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
+  SD_DIR="$HOME/stable-diffusion-webui"
+  SD_MODEL_DIR="$SD_DIR/models/Stable-diffusion"
+  SD_MODEL="sd_xl_base_1.0.safetensors"
+  SD_MODEL_URL="https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
+  if [[ ! -d "$SD_DIR" ]]; then
+    sudo apt-get install $APT_FLAGS git python3 python3-venv libgl1 libglib2.0-0
+    git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui "$SD_DIR"
+  fi
+  if [[ ! -f "$SD_MODEL_DIR/$SD_MODEL" ]]; then
+    mkdir -p "$SD_MODEL_DIR"
+    echo "--> Downloading SDXL 1.0 model (~6.9GB) ..."
+    wget -q --show-progress -O "$SD_MODEL_DIR/$SD_MODEL" "$SD_MODEL_URL"
+  fi
+  if [[ ! -f /etc/systemd/system/sd-webui.service ]]; then
+    sudo tee /etc/systemd/system/sd-webui.service > /dev/null <<EOF
+[Unit]
+Description=Stable Diffusion Web UI (AUTOMATIC1111)
+After=network.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$SD_DIR
+ExecStart=$SD_DIR/webui.sh --api --listen --nowebui --skip-torch-cuda-test
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable sd-webui
+    sudo systemctl start sd-webui
+    echo "--> sd-webui service installed and started (first run will take several minutes to initialize)"
+  fi
+fi
+
+# Prompt for optional Open WebUI features
+ENABLE_WEB_SEARCH_FLAG=false
+ENABLE_IMAGE_GEN_FLAG=false
+if [[ "$INTERACTIVE" == "true" ]]; then
+  read -r -p "Enable web search in Open WebUI (DuckDuckGo)? [y/N] " _ws_reply
+  [[ "$_ws_reply" =~ ^[Yy] ]] && ENABLE_WEB_SEARCH_FLAG=true
+  if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
+    ENABLE_IMAGE_GEN_FLAG=true
+  fi
+fi
+
 # Start Open WebUI (pointed at pipelines server instead of Ollama directly)
 if ! docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
-  docker run -d \
-    --name open-webui \
-    --restart unless-stopped \
-    --add-host=host.docker.internal:host-gateway \
-    -p 3000:8080 \
-    --env "OPENAI_API_BASE_URL=http://host.docker.internal:9099/v1" \
-    --env 'OPENAI_API_KEY=0p3n-w3bu!' \
-    --env "ENABLE_EVALUATION_ARENA_MODELS=false" \
-    --env "ENABLE_WEB_SEARCH=True" \
-    --env "WEB_SEARCH_ENGINE=duckduckgo" \
-    -v open-webui:/app/backend/data \
-    ghcr.io/open-webui/open-webui:main
+  OW_ARGS=(
+    --name open-webui
+    --restart unless-stopped
+    --add-host=host.docker.internal:host-gateway
+    -p 3000:8080
+    --env "OPENAI_API_BASE_URL=http://host.docker.internal:9099/v1"
+    --env 'OPENAI_API_KEY=0p3n-w3bu!'
+    --env "ENABLE_EVALUATION_ARENA_MODELS=false"
+    -v open-webui:/app/backend/data
+  )
+  if [[ "$ENABLE_WEB_SEARCH_FLAG" == "true" ]]; then
+    OW_ARGS+=(--env "ENABLE_WEB_SEARCH=True" --env "WEB_SEARCH_ENGINE=duckduckgo")
+  fi
+  if [[ "$ENABLE_IMAGE_GEN_FLAG" == "true" ]]; then
+    OW_ARGS+=(--env "ENABLE_IMAGE_GENERATION=True" --env "IMAGE_GENERATION_ENGINE=automatic1111" --env "AUTOMATIC1111_BASE_URL=http://host.docker.internal:7860")
+  fi
+  docker run -d "${OW_ARGS[@]}" ghcr.io/open-webui/open-webui:main
 else
   echo "--> open-webui already exists, skipping (recreate manually if env vars need updating)"
 fi
