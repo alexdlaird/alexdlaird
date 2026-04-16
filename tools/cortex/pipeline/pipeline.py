@@ -29,6 +29,7 @@ class Pipeline:
         )
 
     def __init__(self):
+        self.id = "cortex"
         self.name = "gemma4-rag"
         self.valves = self.Valves()
         self._resolved_model = None
