@@ -4,6 +4,7 @@ __license__ = "MIT"
 import argparse
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -83,6 +84,7 @@ def generate_pair(chunk_text, ollama_base_url, model):
         response.raise_for_status()
         content = response.json()["message"]["content"].strip()
         content = content.removeprefix("```json").removesuffix("```").strip()
+        content = re.sub(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', content)
         pair = json.loads(content)
         question = pair.get("question", "").strip()
         answer = pair.get("answer", "").strip()
