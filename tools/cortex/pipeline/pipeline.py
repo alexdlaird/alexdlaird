@@ -89,17 +89,23 @@ class Pipeline:
         filtered = [m for m in messages if m.get("role") != "system"]
         augmented_messages = [{"role": "system", "content": system_content}] + filtered
 
+        stream = body.get("stream", True)
+        print(f"DEBUG pipe called: stream={stream}, model={self.valves.OLLAMA_MODEL}")
+
         response = requests.post(
             f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
             json={
                 "model": self.valves.OLLAMA_MODEL,
                 "messages": augmented_messages,
-                "stream": True,
+                "stream": stream,
             },
-            stream=True,
+            stream=stream,
         )
         response.raise_for_status()
 
-        for line in response.iter_lines():
-            if line:
-                yield line.decode("utf-8") + "\n"
+        if stream:
+            for line in response.iter_lines():
+                if line:
+                    yield line.decode("utf-8") + "\n"
+        else:
+            yield response.text
