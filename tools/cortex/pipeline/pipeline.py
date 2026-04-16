@@ -12,7 +12,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 class Pipeline:
     class Valves(BaseModel):
         OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
-        OLLAMA_MODEL: str = "cortex"
+        OLLAMA_MODEL: str = "gemma4"
         QDRANT_URL: str = "http://qdrant:6333"
         EMBED_MODEL: str = "nomic-embed-text"
         COLLECTION_NAME: str = "cortex"
