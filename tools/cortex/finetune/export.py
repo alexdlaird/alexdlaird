@@ -60,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=None, help="Output directory for GGUF and Modelfile")
     parser.add_argument("--quant", default="q4_k_m", choices=["q4_k_m", "q5_k_m", "q8_0", "f16"],
                         help="Quantization method (default: q4_k_m)")
-    parser.add_argument("--model-name", default="cortex-ft", help="Name for ollama create (default: cortex-ft)")
+    parser.add_argument("--model-name", default="cortex", help="Name for ollama create (default: cortex)")
     args = parser.parse_args()
 
     adapter_path = args.adapter or (FINETUNE_OUTPUT_DIR / "merged")

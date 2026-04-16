@@ -17,6 +17,11 @@ from config import COLLECTION_NAME, DEVELOPER_DIR, DOC_EXTENSIONS, DOC_PATHS, EM
 
 logger = logging.getLogger(__name__)
 
+# Suppress noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("llama_index").setLevel(logging.WARNING)
+
 
 def ingest_docs(doc_paths: list[str]) -> None:
     if not doc_paths:

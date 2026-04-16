@@ -28,6 +28,11 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
+# Suppress noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("llama_index").setLevel(logging.WARNING)
+
 
 def build_client_and_store(rebuild: bool) -> tuple[QdrantClient, QdrantVectorStore]:
     client = QdrantClient(url=QDRANT_URL)
