@@ -30,7 +30,7 @@ class Pipeline:
 
     def __init__(self):
         self.id = "cortex"
-        self.name = "gemma4-rag"
+        self.name = "cortex"
         self.valves = self.Valves()
         self._resolved_model = None
 
@@ -49,12 +49,10 @@ class Pipeline:
             for m in models:
                 if m.split(":")[0] == "cortex":
                     self._resolved_model = m
-                    self.name = "cortex"
                     return self._resolved_model
         except Exception:
             pass
         self._resolved_model = self.valves.OLLAMA_MODEL
-        self.name = f"{self.valves.OLLAMA_MODEL}-rag"
         return self._resolved_model
 
     def _embed(self, text: str) -> list:
