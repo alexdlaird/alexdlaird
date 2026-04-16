@@ -15,13 +15,13 @@ fi
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' 2>/dev/null || true
 
-# Configure firewall: allow SSH from anywhere on LAN, block outgoing to LAN, allow internet
+# Configure firewall: allow SSH and web UI, block outgoing to LAN, allow internet
+sudo ufw allow 22/tcp
+sudo ufw allow 3000/tcp
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw deny out to 192.168.86.0/22
 if ! sudo ufw status | grep -q "Status: active"; then
-  sudo ufw allow 22/tcp
-  sudo ufw allow 3000/tcp
-  sudo ufw default deny incoming
-  sudo ufw default allow outgoing
-  sudo ufw deny out to 192.168.86.0/22
   sudo ufw enable
 fi
 

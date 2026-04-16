@@ -56,7 +56,12 @@ sudo apt-get autoremove $APT_FLAGS
 
 sudo usermod -aG audio $USER
 sudo usermod -aG video $USER
-sudo usermod -aG docker $USER
+if ! groups | grep -q docker; then
+  sudo usermod -aG docker $USER
+  echo ""
+  echo "!!> Added $USER to docker group. Please log out and back in, then rerun the bootstrap to complete setup."
+  return 0 2>/dev/null || exit 0
+fi
 
 if ! command -v aws 2>&1 >/dev/null; then
   # Install aws
