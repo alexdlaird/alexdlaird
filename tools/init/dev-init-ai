@@ -116,7 +116,8 @@ fi
 # Install AUTOMATIC1111 (Stable Diffusion web UI for image generation)
 INSTALL_IMAGE_GEN=false
 if [[ "$INTERACTIVE" == "true" ]]; then
-  read -r -p "Install image generation support (AUTOMATIC1111 + SDXL, ~6.9GB)? [y/N] " _img_reply
+  echo -n "Install image generation support (AUTOMATIC1111 + SDXL, ~6.9GB)? [y/N] "
+  read -r _img_reply
   [[ "$_img_reply" =~ ^[Yy] ]] && INSTALL_IMAGE_GEN=true
 fi
 if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
@@ -161,7 +162,8 @@ fi
 ENABLE_WEB_SEARCH_FLAG=false
 ENABLE_IMAGE_GEN_FLAG=false
 if [[ "$INTERACTIVE" == "true" ]]; then
-  read -r -p "Enable web search in Open WebUI (DuckDuckGo)? [y/N] " _ws_reply
+  echo -n "Enable web search in Open WebUI (DuckDuckGo)? [y/N] "
+  read -r _ws_reply
   [[ "$_ws_reply" =~ ^[Yy] ]] && ENABLE_WEB_SEARCH_FLAG=true
   if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
     ENABLE_IMAGE_GEN_FLAG=true
