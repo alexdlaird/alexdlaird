@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean ingest search refresh
+.PHONY: all install nopyc clean ingest search refresh restart
 
 SHELL := /usr/bin/env bash
 PYTHON_BIN ?= python
@@ -42,3 +42,6 @@ search: install
 refresh:
 	docker cp $(TOOLS_CORTEX)/pipeline/pipeline.py pipelines:/app/pipelines/pipeline.py
 	docker restart pipelines
+
+restart:
+	docker restart qdrant pipelines open-webui
