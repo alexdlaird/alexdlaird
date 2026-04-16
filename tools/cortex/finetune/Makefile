@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean fetch-blog pretrain-tone pretrain-tone-resume pretrain-tone-bg generate-data generate-data-sample generate-data-bg train train-bg train-merge train-merge-bg export export-bg register
+.PHONY: all install nopyc clean pretrain-tone generate-data train train-merge export register
 
 LOG_DIR := logs
 
@@ -30,53 +30,19 @@ nopyc:
 clean: nopyc
 	rm -rf $(PROJECT_VENV)
 
-fetch-blog: install
-	@( \
-		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/fetch_blog.py; \
-	)
-
-pretrain-tone-bg: install
-	@mkdir -p $(LOG_DIR)
-	@nohup $(MAKE) pretrain-tone > $(LOG_DIR)/pretrain-tone.log 2>&1 &
-	@echo "--> pretrain-tone running in background (PID $$!), tailing log ..."
-	@tail -f $(LOG_DIR)/pretrain-tone.log
-
 pretrain-tone: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
+		python $(TOOLS_CORTEX)/finetune/fetch_blog.py; \
 		python $(TOOLS_CORTEX)/finetune/pretrain_tone.py; \
 	)
 
-pretrain-tone-resume: install
-	@( \
-		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/pretrain_tone.py --resume; \
-	)
-
-generate-data-bg: install
-	@mkdir -p $(LOG_DIR)
-	@nohup $(MAKE) generate-data > $(LOG_DIR)/generate-data.log 2>&1 &
-	@echo "--> generate-data running in background (PID $$!), tailing log ..."
-	@tail -f $(LOG_DIR)/generate-data.log
-
 generate-data: install
+	@mkdir -p $(LOG_DIR)
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/finetune/generate_data.py; \
 	)
-
-generate-data-sample: install
-	@( \
-		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/generate_data.py --sample-every 10 --limit 200; \
-	)
-
-train-bg: install
-	@mkdir -p $(LOG_DIR)
-	@nohup $(MAKE) train > $(LOG_DIR)/train.log 2>&1 &
-	@echo "--> train running in background (PID $$!), tailing log ..."
-	@tail -f $(LOG_DIR)/train.log
 
 train: install
 	@( \
@@ -84,23 +50,11 @@ train: install
 		python $(TOOLS_CORTEX)/finetune/train.py; \
 	)
 
-train-merge-bg: install
-	@mkdir -p $(LOG_DIR)
-	@nohup $(MAKE) train-merge > $(LOG_DIR)/train-merge.log 2>&1 &
-	@echo "--> train-merge running in background (PID $$!), tailing log ..."
-	@tail -f $(LOG_DIR)/train-merge.log
-
 train-merge: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/finetune/train.py --merge; \
 	)
-
-export-bg: install
-	@mkdir -p $(LOG_DIR)
-	@nohup $(MAKE) export > $(LOG_DIR)/export.log 2>&1 &
-	@echo "--> export running in background (PID $$!), tailing log ..."
-	@tail -f $(LOG_DIR)/export.log
 
 export: install
 	@( \
