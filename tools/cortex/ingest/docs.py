@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Suppress noisy third-party loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("llama_index").setLevel(logging.WARNING)
+logging.getLogger("llama_index").setLevel(logging.ERROR)
 
 
 def ingest_docs(doc_paths: list[str]) -> None:
