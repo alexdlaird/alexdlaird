@@ -92,17 +92,14 @@ class Pipeline:
         response = requests.post(
             f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
             json={
-                **body,
                 "model": self.valves.OLLAMA_MODEL,
                 "messages": augmented_messages,
+                "stream": True,
             },
-            stream=body.get("stream", False),
+            stream=True,
         )
         response.raise_for_status()
 
-        if body.get("stream", False):
-            for line in response.iter_lines():
-                if line:
-                    yield line.decode("utf-8") + "\n"
-        else:
-            yield response.text
+        for line in response.iter_lines():
+            if line:
+                yield line.decode("utf-8") + "\n"
