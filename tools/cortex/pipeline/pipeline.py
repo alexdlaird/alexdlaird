@@ -28,12 +28,28 @@ class Pipeline:
     def __init__(self):
         self.name = "gemma4-rag"
         self.valves = self.Valves()
+        self._resolved_model = None
 
     async def on_startup(self):
         pass
 
     async def on_valves_updated(self):
-        pass
+        self._resolved_model = None
+
+    def _resolve_model(self) -> str:
+        if self._resolved_model:
+            return self._resolved_model
+        try:
+            response = requests.get(f"{self.valves.OLLAMA_BASE_URL}/api/tags", timeout=5)
+            models = [m["name"] for m in response.json().get("models", [])]
+            for m in models:
+                if m.split(":")[0] == "cortex":
+                    self._resolved_model = m
+                    return self._resolved_model
+        except Exception:
+            pass
+        self._resolved_model = self.valves.OLLAMA_MODEL
+        return self._resolved_model
 
     def _embed(self, text: str) -> list:
         response = requests.post(
@@ -96,7 +112,7 @@ class Pipeline:
         response = requests.post(
             f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
             json={
-                "model": self.valves.OLLAMA_MODEL,
+                "model": self._resolve_model(),
                 "messages": augmented_messages,
                 "stream": stream,
             },
