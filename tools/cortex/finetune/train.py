@@ -53,8 +53,7 @@ def load_model_and_tokenizer():
 
 def train(data_path, output_path, resume):
     from datasets import load_dataset
-    from trl import SFTTrainer
-    from transformers import TrainingArguments
+    from trl import SFTTrainer, SFTConfig
     from unsloth.chat_templates import get_chat_template, standardize_sharegpt
 
     logger.info(f"Loading model: {HF_MODEL_ID}")
