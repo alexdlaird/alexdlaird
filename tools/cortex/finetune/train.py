@@ -133,14 +133,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fine-tune Gemma 4 with QLoRA via Unsloth.")
     parser.add_argument("--data", type=Path, default=None, help="Path to sharegpt.jsonl")
     parser.add_argument("--output", type=Path, default=None, help="Output directory for adapter")
-    parser.add_argument("--merge", action="store_true", help="Merge adapter into full weights after training")
     parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint")
+    parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
 
     data_path = args.data or (FINETUNE_DATA_DIR / "sharegpt.jsonl")
     output_path = args.output or FINETUNE_OUTPUT_DIR
 
-    if args.merge:
-        train_and_merge(data_path, output_path, args.resume)
+    if not args.bg:
+        import os
+        import subprocess
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        log_path = log_dir / "train.log"
+        cmd = [
+            sys.executable, __file__,
+            "--data", str(data_path),
+            "--output", str(output_path),
+            "--bg",
+        ]
+        if args.resume:
+            cmd += ["--resume"]
+        with open(log_path, "w") as log_file:
+            proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
+        print(f"\n--> train running in background (PID {proc.pid}), tailing log ...")
+        os.execlp("tail", "tail", "-f", str(log_path))
     else:
-        train(data_path, output_path, args.resume)
+        train_and_merge(data_path, output_path, args.resume)

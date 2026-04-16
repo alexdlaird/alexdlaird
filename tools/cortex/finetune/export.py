@@ -61,9 +61,29 @@ if __name__ == "__main__":
     parser.add_argument("--quant", default="q4_k_m", choices=["q4_k_m", "q5_k_m", "q8_0", "f16"],
                         help="Quantization method (default: q4_k_m)")
     parser.add_argument("--model-name", default="cortex", help="Name for ollama create (default: cortex)")
+    parser.add_argument("--bg", action="store_true", help="Run in background (internal use)")
     args = parser.parse_args()
 
     adapter_path = args.adapter or (FINETUNE_OUTPUT_DIR / "merged")
     output_path = args.output or (FINETUNE_OUTPUT_DIR / "gguf")
 
-    export(adapter_path, output_path, args.quant, args.model_name)
+    if not args.bg:
+        import os
+        import subprocess
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        log_path = log_dir / "export.log"
+        cmd = [
+            sys.executable, __file__,
+            "--adapter", str(adapter_path),
+            "--output", str(output_path),
+            "--quant", args.quant,
+            "--model-name", args.model_name,
+            "--bg",
+        ]
+        with open(log_path, "w") as log_file:
+            proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
+        print(f"\n--> export running in background (PID {proc.pid}), tailing log ...")
+        os.execlp("tail", "tail", "-f", str(log_path))
+    else:
+        export(adapter_path, output_path, args.quant, args.model_name)

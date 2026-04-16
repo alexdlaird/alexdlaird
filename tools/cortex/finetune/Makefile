@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean pretrain-tone generate-data train train-merge export register
+.PHONY: all install nopyc clean pretrain-tone generate-data train export register
 
 LOG_DIR := logs
 
@@ -49,12 +49,6 @@ train: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/finetune/train.py; \
-	)
-
-train-merge: install
-	@( \
-		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/train.py --merge; \
 	)
 
 export: install
