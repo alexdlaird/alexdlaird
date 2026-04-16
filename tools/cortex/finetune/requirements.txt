@@ -1,7 +1,7 @@
 # Install torch with CUDA support before this file — see finetune/Makefile
 # Unsloth wheel is CUDA-version-specific; dev-init-ai handles detection
 unsloth
-trl
+trl>=0.13.0
 datasets
 huggingface_hub
 qdrant-client
