@@ -75,9 +75,9 @@ def pretrain(blog_dir, output_path, resume):
         model=model,
         processing_class=tokenizer,
         train_dataset=dataset,
-        max_seq_length=MAX_SEQ_LENGTH,
         args=SFTConfig(
             dataset_text_field="text",
+            max_seq_length=MAX_SEQ_LENGTH,
             per_device_train_batch_size=TRAIN_BATCH_SIZE,
             gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
             warmup_ratio=WARMUP_RATIO,
