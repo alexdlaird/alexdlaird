@@ -87,13 +87,20 @@ PIPELINE_DIR="$HOME/Developer/alexdlaird/tools/cortex/pipeline"
 if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
   docker run -d \
     --name pipelines \
-    --restart unless-stopped \
+    --restart no \
     --add-host=host.docker.internal:host-gateway \
     -p 9099:9099 \
     --env "PIPELINES_REQUIREMENTS_PATH=/app/pipelines/requirements.txt" \
-    -v "$PIPELINE_DIR/pipeline.py:/app/pipelines/pipeline.py" \
-    -v "$PIPELINE_DIR/requirements.txt:/app/pipelines/requirements.txt" \
+    -v pipelines:/app/pipelines \
     ghcr.io/open-webui/pipelines:main
+  echo "--> Waiting for pipelines container to initialize ..."
+  until docker logs pipelines 2>&1 | grep -q "Application startup complete\|Uvicorn running"; do sleep 3; done
+  docker cp "$PIPELINE_DIR/pipeline.py" pipelines:/app/pipelines/pipeline.py
+  docker cp "$PIPELINE_DIR/requirements.txt" pipelines:/app/pipelines/requirements.txt
+  docker update --restart unless-stopped pipelines
+  docker restart pipelines
+  echo "--> Waiting for pipelines to restart with pipeline loaded ..."
+  until docker logs pipelines 2>&1 | grep -q "Loaded module: pipeline"; do sleep 3; done
 else
   echo "--> pipelines already exists, skipping (recreate manually if pipeline files changed)"
 fi
