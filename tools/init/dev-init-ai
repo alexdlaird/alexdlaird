@@ -71,15 +71,21 @@ fi
 ollama pull gemma4
 ollama pull nomic-embed-text
 
+# Create shared Docker network for inter-container communication
+docker network create cortex 2>/dev/null || true
+
 # Start Qdrant
 if ! docker ps -a --format '{{.Names}}' | grep -q '^qdrant$'; then
   docker run -d \
     --name qdrant \
     --restart unless-stopped \
+    --network cortex \
     -p 6333:6333 \
     -p 6334:6334 \
     -v "$HOME/qdrant_storage:/qdrant/storage:z" \
     qdrant/qdrant
+else
+  docker network connect cortex qdrant 2>/dev/null || true
 fi
 
 # Start pipelines server (RAG middleware between Open WebUI and Ollama)
@@ -88,6 +94,7 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
   docker run -d \
     --name pipelines \
     --restart no \
+    --network cortex \
     --add-host=host.docker.internal:host-gateway \
     -p 9099:9099 \
     --env "PIPELINES_REQUIREMENTS_PATH=/app/pipelines/requirements.txt" \
@@ -102,6 +109,7 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
   echo "--> Waiting for pipelines to restart with pipeline loaded ..."
   until docker logs pipelines 2>&1 | grep -q "Loaded module: pipeline"; do sleep 3; done
 else
+  docker network connect cortex pipelines 2>/dev/null || true
   echo "--> pipelines already exists, skipping (recreate manually if pipeline files changed)"
 fi
 
