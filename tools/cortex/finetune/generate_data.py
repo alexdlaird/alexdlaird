@@ -84,7 +84,8 @@ def generate_pair(chunk_text, ollama_base_url, model):
         response.raise_for_status()
         content = response.json()["message"]["content"].strip()
         content = content.removeprefix("```json").removesuffix("```").strip()
-        content = re.sub(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', content)
+        # Escape any invalid backslash sequences before parsing
+        content = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content)
         pair = json.loads(content)
         question = pair.get("question", "").strip()
         answer = pair.get("answer", "").strip()
