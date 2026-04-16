@@ -123,6 +123,8 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
     --env "OPENAI_API_BASE_URL=http://host.docker.internal:9099/v1" \
     --env 'OPENAI_API_KEY=0p3n-w3bu!' \
     --env "ENABLE_EVALUATION_ARENA_MODELS=false" \
+    --env "ENABLE_WEB_SEARCH=True" \
+    --env "WEB_SEARCH_ENGINE=duckduckgo" \
     -v open-webui:/app/backend/data \
     ghcr.io/open-webui/open-webui:main
 else
