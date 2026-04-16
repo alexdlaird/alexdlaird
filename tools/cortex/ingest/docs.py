@@ -56,6 +56,8 @@ def ingest_docs(doc_paths: list[str]) -> None:
             continue
 
         if docs:
+            for doc in docs:
+                doc.metadata["chunk_type"] = "source"
             logger.info(f"  Found {len(docs)} docs, embedding ...")
             VectorStoreIndex.from_documents(
                 docs,

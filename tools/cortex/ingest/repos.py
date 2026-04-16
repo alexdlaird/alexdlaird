@@ -3,6 +3,7 @@ __license__ = "MIT"
 
 import argparse
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -52,6 +53,13 @@ def build_client_and_store(rebuild: bool) -> tuple[QdrantClient, QdrantVectorSto
     return client, QdrantVectorStore(client=client, collection_name=COLLECTION_NAME)
 
 
+TEST_PATH_PATTERN = re.compile(r"(^|/)tests?(/|$)", re.IGNORECASE)
+
+
+def is_test_file(path: str) -> bool:
+    return bool(TEST_PATH_PATTERN.search(path))
+
+
 def load_repo(path: Path, extensions: list[str]):
     try:
         return SimpleDirectoryReader(
@@ -83,6 +91,9 @@ def ingest_repos(repos: list[str], rebuild: bool) -> None:
 
         docs = load_repo(repo_path, CODE_EXTENSIONS + DOC_EXTENSIONS)
         if docs:
+            for doc in docs:
+                file_path = doc.metadata.get("file_path", "")
+                doc.metadata["chunk_type"] = "test" if is_test_file(file_path) else "source"
             logger.info(f"  Found {len(docs)} files, embedding ...")
             VectorStoreIndex.from_documents(
                 docs,
