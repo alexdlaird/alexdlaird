@@ -56,12 +56,13 @@ def ingest_docs(doc_paths: list[str]) -> None:
             continue
 
         if docs:
+            logger.info(f"  Found {len(docs)} docs, embedding ...")
             VectorStoreIndex.from_documents(
                 docs,
                 storage_context=storage_context,
                 transformations=[splitter],
             )
-            logger.info(f"  Indexed {len(docs)} docs from {path}")
+            logger.info(f"  Done.")
 
 
 if __name__ == "__main__":
