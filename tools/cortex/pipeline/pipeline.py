@@ -26,7 +26,7 @@ class Pipeline:
         )
 
     def __init__(self):
-        self.name = "Cortex RAG Pipeline"
+        self.name = "gemma4-rag"
         self.valves = self.Valves()
 
     async def on_startup(self):
