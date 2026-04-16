@@ -55,14 +55,8 @@ DOC_PATHS: list[str] = []
 Run all commands from your config directory:
 
 ```bash
-# Ingest repos into the vector index
+# Ingest repos and docs into the vector index (always rebuilds from scratch)
 make ingest
-
-# Rebuild the index from scratch (drops and recreates the collection)
-make rebuild
-
-# Ingest standalone docs/specs (paths defined in DOC_PATHS in config.py)
-make ingest-docs
 
 # Search the index
 make search QUERY="how does the auth middleware work"
@@ -88,6 +82,12 @@ from pathlib import Path
 
 FINETUNE_DATA_DIR   = Path.home() / "cortex-finetune" / "data"
 FINETUNE_OUTPUT_DIR = Path.home() / "cortex-finetune" / "output"
+BLOG_OUTPUT_DIR     = FINETUNE_DATA_DIR / "blog"
+
+BLOG_SITEMAP_URL = "https://example.com/post-sitemap.xml"
+SEED_DATA_PATHS  = []  # list of Path objects to seed .jsonl files
+
+SYSTEM_PROMPT = "You are a coding assistant ..."
 
 QDRANT_URL        = "http://localhost:6333"
 OLLAMA_BASE_URL   = "http://localhost:11434"
@@ -115,13 +115,13 @@ WARMUP_RATIO                = 0.05
 ### Usage
 
 ```bash
-# Validate Q&A generation quality on a small sample before committing to the full run
-make generate-data-sample
+# Fetch blog posts and run tone pre-training
+make pretrain-tone
 
-# Generate training data from the full RAG corpus
+# Generate training data from the RAG corpus (interactive; runs in background)
 make generate-data
 
-# Train the QLoRA adapter (iterate here; use --resume to continue a run)
+# Train the QLoRA adapter
 make train
 
 # Train and merge adapter into full weights (required before export)
