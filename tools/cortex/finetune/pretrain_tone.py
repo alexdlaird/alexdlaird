@@ -51,7 +51,7 @@ def load_model_and_tokenizer():
 
 def pretrain(blog_dir, output_path, resume):
     from datasets import Dataset
-    from trl import CPTTrainer, CPTConfig
+    from trl import SFTTrainer, SFTConfig
 
     txt_files = sorted(blog_dir.glob("*.txt"))
     if not txt_files:
@@ -69,11 +69,13 @@ def pretrain(blog_dir, output_path, resume):
 
     resume_from = str(adapter_path) if resume and any(adapter_path.iterdir()) else None
 
-    trainer = CPTTrainer(
+    trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset,
-        args=CPTConfig(
+        args=SFTConfig(
+            dataset_text_field="text",
+            max_seq_length=MAX_SEQ_LENGTH,
             per_device_train_batch_size=TRAIN_BATCH_SIZE,
             gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
             warmup_ratio=WARMUP_RATIO,
@@ -87,11 +89,10 @@ def pretrain(blog_dir, output_path, resume):
             lr_scheduler_type="cosine",
             output_dir=str(adapter_path),
             report_to="none",
-            max_seq_length=MAX_SEQ_LENGTH,
         ),
     )
 
-    logger.info("Starting continued pre-training ...")
+    logger.info("Starting tone pre-training ...")
     trainer.train(resume_from_checkpoint=resume_from)
 
     logger.info(f"Saving pre-train LoRA adapter to {adapter_path}")
