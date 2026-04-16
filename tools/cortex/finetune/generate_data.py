@@ -84,17 +84,11 @@ def generate_pair(chunk_text, ollama_base_url, model):
         response.raise_for_status()
         content = response.json()["message"]["content"].strip()
         content = content.removeprefix("```json").removesuffix("```").strip()
-        # Extract question/answer with regex as fallback for malformed JSON
-        try:
-            content = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content)
-            pair = json.loads(content)
-        except json.JSONDecodeError:
-            q_match = re.search(r'"question"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
-            a_match = re.search(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
-            if q_match and a_match:
-                pair = {"question": q_match.group(1), "answer": a_match.group(1)}
-            else:
-                raise ValueError(f"Could not extract question/answer from: {content[:200]}")
+        q_match = re.search(r'"question"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
+        a_match = re.search(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
+        if not q_match or not a_match:
+            raise ValueError(f"Could not extract question/answer from response")
+        pair = {"question": q_match.group(1), "answer": a_match.group(1)}
         question = pair.get("question", "").strip()
         answer = pair.get("answer", "").strip()
         if question and answer:
