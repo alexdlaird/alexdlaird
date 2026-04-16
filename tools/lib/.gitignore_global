@@ -11,3 +11,4 @@
 *.tfstate
 *.tfstate.backup
 .claude/
+.aider*
