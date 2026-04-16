@@ -1,4 +1,6 @@
-.PHONY: all install nopyc clean ingest ingest-docs rebuild search
+.PHONY: all install nopyc clean ingest ingest-bg ingest-docs ingest-docs-bg rebuild rebuild-bg search
+
+LOG_DIR := logs
 
 SHELL := /usr/bin/env bash
 PYTHON_BIN ?= python
@@ -25,17 +27,35 @@ nopyc:
 clean: nopyc
 	rm -rf $(PROJECT_VENV)
 
+ingest-bg: install
+	@mkdir -p $(LOG_DIR)
+	@nohup $(MAKE) ingest > $(LOG_DIR)/ingest.log 2>&1 &
+	@echo "--> ingest running in background (PID $$!), tailing log ..."
+	@tail -f $(LOG_DIR)/ingest.log
+
 ingest: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/ingest/repos.py; \
 	)
 
+rebuild-bg: install
+	@mkdir -p $(LOG_DIR)
+	@nohup $(MAKE) rebuild > $(LOG_DIR)/rebuild.log 2>&1 &
+	@echo "--> rebuild running in background (PID $$!), tailing log ..."
+	@tail -f $(LOG_DIR)/rebuild.log
+
 rebuild: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/ingest/repos.py --rebuild; \
 	)
+
+ingest-docs-bg: install
+	@mkdir -p $(LOG_DIR)
+	@nohup $(MAKE) ingest-docs > $(LOG_DIR)/ingest-docs.log 2>&1 &
+	@echo "--> ingest-docs running in background (PID $$!), tailing log ..."
+	@tail -f $(LOG_DIR)/ingest-docs.log
 
 ingest-docs: install
 	@( \
