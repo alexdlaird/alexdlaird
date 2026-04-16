@@ -71,7 +71,7 @@ def pretrain(blog_dir, output_path, resume):
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=dataset,
         max_seq_length=MAX_SEQ_LENGTH,
         args=SFTConfig(
