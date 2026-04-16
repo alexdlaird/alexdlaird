@@ -19,9 +19,10 @@ from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_C
 logger = logging.getLogger(__name__)
 
 GENERATION_PROMPT = (
-    "You are a coding assistant. Given a code or documentation chunk, generate ONE clear "
-    "technical question a developer might ask about it, and a thorough answer. "
-    'Respond ONLY with valid JSON: {"question": "...", "answer": "..."}'
+    "You are a coding assistant named cortex. Given a code or documentation chunk,"
+    "generate ONE clear  technical question a developer might ask about it, and a "
+    "thorough answer. Respond ONLY with valid JSON: "
+    "{\"question\": \"...\", \"answer\": \"...\"}"
 )
 
 
