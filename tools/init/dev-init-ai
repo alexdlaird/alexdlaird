@@ -18,6 +18,7 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'no
 # Configure firewall: allow SSH and web UI, block outgoing to LAN, allow internet
 sudo ufw allow 22/tcp
 sudo ufw allow 3000/tcp
+sudo ufw allow 9099/tcp
 sudo ufw allow 11434/tcp
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
@@ -81,21 +82,40 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^qdrant$'; then
     qdrant/qdrant
 fi
 
-# Start Open WebUI
+# Start pipelines server (RAG middleware between Open WebUI and Ollama)
+PIPELINE_DIR="$DIR/../cortex/pipeline"
+if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
+  docker run -d \
+    --name pipelines \
+    --restart unless-stopped \
+    --add-host=host.docker.internal:host-gateway \
+    -p 9099:9099 \
+    -v "$PIPELINE_DIR:/app/pipelines" \
+    ghcr.io/open-webui/pipelines:main
+else
+  echo "--> pipelines already exists, skipping (recreate manually if pipeline files changed)"
+fi
+
+# Start Open WebUI (pointed at pipelines server instead of Ollama directly)
 if ! docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
   docker run -d \
     --name open-webui \
     --restart unless-stopped \
     --add-host=host.docker.internal:host-gateway \
     -p 3000:8080 \
+    -e OPENAI_API_BASE_URL=http://host.docker.internal:9099/v1 \
+    -e OPENAI_API_KEY=0p3n-w3bu! \
     -v open-webui:/app/backend/data \
     ghcr.io/open-webui/open-webui:main
+else
+  echo "--> open-webui already exists, skipping (recreate manually if env vars need updating)"
 fi
 
-# Provision RAG and fine-tuning Makefiles into private-dev
+# Provision RAG, fine-tuning, and pipeline dirs into private-dev
 PRIVATE_CORTEX="$HOME/Developer/private-dev/servers/cortex"
 ln -sf "$DIR/../cortex/rag/Makefile" "$PRIVATE_CORTEX/rag/Makefile"
 ln -sf "$DIR/../cortex/finetune/Makefile" "$PRIVATE_CORTEX/finetune/Makefile"
+mkdir -p "$PRIVATE_CORTEX/pipeline"
 
 # Install fine-tuning dependencies (Unsloth, HuggingFace)
 if ! python -c "import unsloth" 2>/dev/null; then
