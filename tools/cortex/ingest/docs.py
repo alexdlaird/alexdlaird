@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path.cwd()))
 
 from llama_index.core import Settings, SimpleDirectoryReader, StorageContext, VectorStoreIndex
-from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
@@ -34,7 +34,7 @@ def ingest_docs(doc_paths: list[str]) -> None:
     client = QdrantClient(url=QDRANT_URL)
     vector_store = QdrantVectorStore(client=client, collection_name=COLLECTION_NAME)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
-    splitter = SentenceSplitter(chunk_size=512, chunk_overlap=64)
+    splitter = TokenTextSplitter(chunk_size=512, chunk_overlap=64)
 
     for raw_path in doc_paths:
         path = Path(raw_path) if Path(raw_path).is_absolute() else DEVELOPER_DIR / raw_path

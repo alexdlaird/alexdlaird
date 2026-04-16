@@ -69,7 +69,7 @@ def ingest_repos(repos: list[str], rebuild: bool) -> None:
 
     client, vector_store = build_client_and_store(rebuild)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
-    splitter = SentenceSplitter(chunk_size=512, chunk_overlap=64)
+    splitter = TokenTextSplitter(chunk_size=512, chunk_overlap=64)
 
     for repo in repos:
         repo_path = DEVELOPER_DIR / repo
