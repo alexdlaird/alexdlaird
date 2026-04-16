@@ -77,12 +77,12 @@ def train(data_path, output_path, resume):
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=dataset,
-        dataset_text_field="text",
-        max_seq_length=MAX_SEQ_LENGTH,
-        dataset_num_proc=2,
-        args=TrainingArguments(
+        args=SFTConfig(
+            dataset_text_field="text",
+            max_seq_length=MAX_SEQ_LENGTH,
+            dataset_num_proc=2,
             per_device_train_batch_size=TRAIN_BATCH_SIZE,
             gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
             warmup_ratio=WARMUP_RATIO,
