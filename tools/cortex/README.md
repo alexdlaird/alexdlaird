@@ -121,11 +121,8 @@ make pretrain-tone
 # Generate training data from the RAG corpus (interactive; runs in background)
 make generate-data
 
-# Train the QLoRA adapter
+# Train the QLoRA adapter and merge into full weights
 make train
-
-# Train and merge adapter into full weights (required before export)
-make train-merge
 
 # Export to GGUF and generate Modelfile
 make export
