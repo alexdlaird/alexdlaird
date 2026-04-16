@@ -90,7 +90,7 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
     --restart unless-stopped \
     --add-host=host.docker.internal:host-gateway \
     -p 9099:9099 \
-    -e PIPELINES_REQUIREMENTS_PATH=/app/pipelines/requirements.txt \
+    --env "PIPELINES_REQUIREMENTS_PATH=/app/pipelines/requirements.txt" \
     -v "$PIPELINE_DIR/pipeline.py:/app/pipelines/pipeline.py" \
     -v "$PIPELINE_DIR/requirements.txt:/app/pipelines/requirements.txt" \
     ghcr.io/open-webui/pipelines:main
@@ -105,8 +105,8 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
     --restart unless-stopped \
     --add-host=host.docker.internal:host-gateway \
     -p 3000:8080 \
-    -e OPENAI_API_BASE_URL=http://host.docker.internal:9099/v1 \
-    -e OPENAI_API_KEY=0p3n-w3bu! \
+    --env "OPENAI_API_BASE_URL=http://host.docker.internal:9099/v1" \
+    --env "OPENAI_API_KEY=0p3n-w3bu!" \
     -v open-webui:/app/backend/data \
     ghcr.io/open-webui/open-webui:main
 else
