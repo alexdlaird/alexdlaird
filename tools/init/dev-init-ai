@@ -136,6 +136,12 @@ if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
     echo "--> Downloading SDXL 1.0 model (~6.9GB) ..."
     wget -q --show-progress -O "$SD_MODEL_DIR/$SD_MODEL" "$SD_MODEL_URL"
   fi
+  if [[ ! -d "$SD_DIR/venv" ]]; then
+    python3.10 -m venv "$SD_DIR/venv"
+    "$SD_DIR/venv/bin/pip" install wheel "setuptools==69.5.1"
+    CLIP_URL="https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip"
+    "$SD_DIR/venv/bin/pip" install --no-build-isolation "$CLIP_URL"
+  fi
   if [[ ! -f /etc/systemd/system/sd-webui.service ]]; then
     CUDA_VER=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | tr -d '.')
     sudo tee /etc/systemd/system/sd-webui.service > /dev/null <<EOF
