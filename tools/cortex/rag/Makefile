@@ -5,6 +5,7 @@ PYTHON_BIN ?= python
 PROJECT_VENV ?= venv
 TOOLS_CORTEX ?= $(HOME)/Developer/alexdlaird/tools/cortex
 TOP_K ?= 5
+INCLUDE_TESTS ?= false
 
 all: install
 
@@ -35,5 +36,5 @@ ingest: install
 search: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/query/search.py --top-k $(TOP_K) "$(QUERY)"; \
+		python $(TOOLS_CORTEX)/query/search.py --top-k $(TOP_K) $(if $(filter true,$(INCLUDE_TESTS)),--include-tests,) "$(QUERY)"; \
 	)
