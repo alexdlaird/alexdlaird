@@ -1,4 +1,1 @@
-llama-index-core
-llama-index-embeddings-ollama
-llama-index-vector-stores-qdrant
 qdrant-client

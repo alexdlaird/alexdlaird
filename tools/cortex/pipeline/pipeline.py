@@ -1,15 +1,12 @@
 __copyright__ = "Copyright (c) 2026 Alex Laird"
 __license__ = "MIT"
 
-from typing import Generator, Iterator, List, Optional, Union
+from typing import Generator, Iterator, List, Union
 
 import requests
-from llama_index.core import Settings, VectorStoreIndex
-from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.vector_stores.qdrant import QdrantVectorStore
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 
 class Pipeline:
@@ -31,45 +28,46 @@ class Pipeline:
     def __init__(self):
         self.name = "Cortex RAG Pipeline"
         self.valves = self.Valves()
-        self._retriever = None
 
     async def on_startup(self):
-        try:
-            self._init_retriever()
-        except Exception as e:
-            print(f"Warning: retriever init failed at startup ({e}), will retry on first request")
+        pass
 
     async def on_valves_updated(self):
-        self._retriever = None
+        pass
 
-    def _init_retriever(self):
-        Settings.embed_model = OllamaEmbedding(
-            model_name=self.valves.EMBED_MODEL,
-            base_url=self.valves.OLLAMA_BASE_URL,
+    def _embed(self, text: str) -> list:
+        response = requests.post(
+            f"{self.valves.OLLAMA_BASE_URL}/api/embed",
+            json={"model": self.valves.EMBED_MODEL, "input": text},
         )
-        Settings.llm = None
-
-        client = QdrantClient(url=self.valves.QDRANT_URL)
-        vector_store = QdrantVectorStore(client=client, collection_name=self.valves.COLLECTION_NAME)
-        index = VectorStoreIndex.from_vector_store(vector_store)
-
-        filters = None if self.valves.INCLUDE_TESTS else MetadataFilters(
-            filters=[MetadataFilter(key="chunk_type", value="source")]
-        )
-        self._retriever = index.as_retriever(similarity_top_k=self.valves.TOP_K, filters=filters)
+        response.raise_for_status()
+        return response.json()["embeddings"][0]
 
     def _retrieve_context(self, query: str) -> str:
-        if self._retriever is None:
-            self._init_retriever()
+        vector = self._embed(query)
 
-        nodes = self._retriever.retrieve(query)
-        if not nodes:
-            return ""
+        client = QdrantClient(url=self.valves.QDRANT_URL)
+        query_filter = None if self.valves.INCLUDE_TESTS else Filter(
+            must=[FieldCondition(key="chunk_type", match=MatchValue(value="source"))]
+        )
+
+        results = client.query_points(
+            collection_name=self.valves.COLLECTION_NAME,
+            query=vector,
+            query_filter=query_filter,
+            limit=self.valves.TOP_K,
+            with_payload=True,
+        )
 
         chunks = []
-        for node in nodes:
-            source = node.metadata.get("file_path", "unknown")
-            chunks.append(f"// {source}\n{node.text.strip()}")
+        for point in results.points:
+            node_content = point.payload.get("_node_content", "{}")
+            import json
+            node = json.loads(node_content) if isinstance(node_content, str) else node_content
+            text = node.get("text", "").strip()
+            file_path = point.payload.get("file_path") or node.get("metadata", {}).get("file_path", "unknown")
+            if text:
+                chunks.append(f"// {file_path}\n{text}")
 
         return "\n\n---\n\n".join(chunks)
 
@@ -80,7 +78,11 @@ class Pipeline:
         messages: List[dict],
         body: dict,
     ) -> Union[str, Generator, Iterator]:
-        context = self._retrieve_context(user_message)
+        try:
+            context = self._retrieve_context(user_message)
+        except Exception as e:
+            print(f"Warning: RAG retrieval failed ({e}), proceeding without context")
+            context = ""
 
         system_content = self.valves.SYSTEM_PROMPT
         if context:
@@ -90,7 +92,6 @@ class Pipeline:
         augmented_messages = [{"role": "system", "content": system_content}] + filtered
 
         stream = body.get("stream", True)
-        print(f"DEBUG pipe called: stream={stream}, model={self.valves.OLLAMA_MODEL}")
 
         response = requests.post(
             f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
