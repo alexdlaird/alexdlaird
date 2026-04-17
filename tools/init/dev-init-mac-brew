@@ -54,8 +54,18 @@ if [[ ! -f "$HOME/.aider.model.settings.yml" ]]; then
   reminder: sys
   examples_as_sys_msg: true
   streaming: true
-  extra_params:
-    max_tokens: 8192
+EOF
+fi
+if [[ ! -f "$HOME/.aider.model.metadata.json" ]]; then
+  cat > "$HOME/.aider.model.metadata.json" <<EOF
+{
+  "openai/cortex": {
+    "max_tokens": 128000,
+    "input_cost_token": 0,
+    "output_cost_token": 0,
+    "caches_by_default": false
+  }
+}
 EOF
 fi
 
