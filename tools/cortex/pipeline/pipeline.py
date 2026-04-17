@@ -1,6 +1,7 @@
 __copyright__ = "Copyright (c) 2026 Alex Laird"
 __license__ = "MIT"
 
+import json
 from typing import Generator, Iterator, List, Union
 
 import requests
@@ -82,7 +83,6 @@ class Pipeline:
         chunks = []
         for point in results.points:
             node_content = point.payload.get("_node_content", "{}")
-            import json
             node = json.loads(node_content) if isinstance(node_content, str) else node_content
             text = node.get("text", "").strip()
             file_path = point.payload.get("file_path") or node.get("metadata", {}).get("file_path", "unknown")
