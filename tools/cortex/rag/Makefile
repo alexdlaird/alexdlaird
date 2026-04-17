@@ -41,6 +41,7 @@ search: install
 
 refresh:
 	docker cp $(TOOLS_CORTEX)/pipeline/pipeline.py pipelines:/app/pipelines/pipeline.py
+	docker exec pipelines rm -f /app/pipelines/pipeline/valves.json
 	docker restart pipelines
 	until docker logs pipelines 2>&1 | grep -q "Loaded module: pipeline"; do sleep 3; done
 	docker restart open-webui
