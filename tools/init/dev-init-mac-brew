@@ -48,14 +48,14 @@ if [[ ! -f "$HOME/.aider.model.settings.yml" ]]; then
 - name: openai/cortex
   edit_format: diff
   weak_model_name: openai/cortex
-  max_tokens: 8192
-  input_tokens: 128000
-  output_tokens: 8192
   use_repo_map: true
   send_undo_reply: true
   lazy: false
   reminder: sys
   examples_as_sys_msg: true
+  streaming: true
+  extra_params:
+    max_tokens: 8192
 EOF
 fi
 
