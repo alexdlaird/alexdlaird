@@ -35,11 +35,9 @@ def export(adapter_path, output_path, quant, model_name):
     logger.info(f"Exporting GGUF ({quant}) to {output_path} ...")
     model.save_pretrained_gguf(str(output_path), tokenizer, quantization_method=quant)
 
-    gguf_files = list(output_path.glob("*.gguf"))
-    if not gguf_files:
-        # Unsloth may ignore output_path and write to {adapter_name}_gguf/ alongside the adapter
-        unsloth_output = adapter_path.parent / (adapter_path.name + "_gguf")
-        gguf_files = list(unsloth_output.glob("*.gguf"))
+    # Unsloth may ignore output_path and write to {adapter_name}_gguf/ alongside the adapter
+    unsloth_output = adapter_path.parent / (adapter_path.name + "_gguf")
+    gguf_files = list(output_path.glob("*.gguf")) + list(unsloth_output.glob("*.gguf"))
     if not gguf_files:
         logger.error("No .gguf file found after export — check Unsloth output.")
         return
