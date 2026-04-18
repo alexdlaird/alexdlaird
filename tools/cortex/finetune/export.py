@@ -37,10 +37,17 @@ def export(adapter_path, output_path, quant, model_name):
 
     gguf_files = list(output_path.glob("*.gguf"))
     if not gguf_files:
+        # Unsloth may ignore output_path and write to {adapter_name}_gguf/ alongside the adapter
+        unsloth_output = adapter_path.parent / (adapter_path.name + "_gguf")
+        gguf_files = list(unsloth_output.glob("*.gguf"))
+    if not gguf_files:
         logger.error("No .gguf file found after export — check Unsloth output.")
         return
 
-    gguf_path = gguf_files[0].resolve()
+    quantized = [f for f in gguf_files if "BF16" not in f.name]
+    gguf_path = (quantized[0] if quantized else gguf_files[0]).resolve()
+
+    output_path.mkdir(parents=True, exist_ok=True)
     modelfile_path = output_path / "Modelfile"
     modelfile_path.write_text(
         MODELFILE_TEMPLATE.format(gguf_path=gguf_path, system_prompt=SYSTEM_PROMPT)
