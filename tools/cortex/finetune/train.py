@@ -108,9 +108,7 @@ def train(data_path, output_path, resume):
     logger.info("Training complete.")
 
 
-def train_and_merge(data_path, output_path, resume):
-    train(data_path, output_path, resume)
-
+def merge(output_path):
     from unsloth import FastLanguageModel
 
     adapter_path = output_path / "lora-adapter"
@@ -121,10 +119,15 @@ def train_and_merge(data_path, output_path, resume):
         model_name=str(adapter_path),
         max_seq_length=MAX_SEQ_LENGTH,
         dtype=None,
-        load_in_4bit=False,
+        load_in_4bit=True,
     )
     model.save_pretrained_merged(str(merged_path), tokenizer, save_method="merged_16bit")
     logger.info("Merge complete.")
+
+
+def train_and_merge(data_path, output_path, resume):
+    train(data_path, output_path, resume)
+    merge(output_path)
 
 
 if __name__ == "__main__":
@@ -134,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=Path, default=None, help="Path to sharegpt.jsonl")
     parser.add_argument("--output", type=Path, default=None, help="Output directory for adapter")
     parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint")
+    parser.add_argument("--merge-only", action="store_true", help="Skip training; merge existing adapter")
     parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
 
@@ -154,9 +158,13 @@ if __name__ == "__main__":
         ]
         if args.resume:
             cmd += ["--resume"]
+        if args.merge_only:
+            cmd += ["--merge-only"]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         print(f"\n--> train running in background (PID {proc.pid}), tailing log ...")
         os.execlp("tail", "tail", "-f", str(log_path))
+    elif args.merge_only:
+        merge(output_path)
     else:
         train_and_merge(data_path, output_path, args.resume)
