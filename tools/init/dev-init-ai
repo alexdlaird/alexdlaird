@@ -54,6 +54,9 @@ if ! command -v nvcc 2>&1 >/dev/null; then
   sudo apt-get install $APT_FLAGS nvidia-cuda-toolkit
 fi
 
+# Install system build dependencies (cmake for llama.cpp, libcurl for HuggingFace downloads)
+sudo apt-get install $APT_FLAGS cmake libcurl4-openssl-dev
+
 # Install Ollama
 if ! command -v ollama 2>&1 >/dev/null; then
   curl -fsSL https://ollama.com/install.sh | sh
