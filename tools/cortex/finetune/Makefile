@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean pretrain-tone generate-data train export register
+.PHONY: all install nopyc clean pretrain-tone generate-data train export register smoke-test
 
 LOG_DIR := logs
 
@@ -60,4 +60,22 @@ export: install
 register:
 	ollama create $(MODEL_NAME) -f $$($(PROJECT_VENV)/bin/python -c \
 		"from config import FINETUNE_OUTPUT_DIR; print(FINETUNE_OUTPUT_DIR / 'gguf' / 'Modelfile')")
+	@$(MAKE) --no-print-directory smoke-test
 	docker restart pipelines
+
+# Fails if the model doesn't terminate cleanly on a trivial prompt — the
+# canonical signature of a broken chat template or missing stop token.
+smoke-test:
+	@echo "--> smoke-testing $(MODEL_NAME) ..."
+	@result=$$(curl -sS --max-time 60 http://localhost:11434/api/chat -d '{ \
+		"model":"$(MODEL_NAME)", \
+		"messages":[{"role":"user","content":"Reply with the single word: hello"}], \
+		"stream":false}'); \
+	done_reason=$$(printf '%s' "$$result" | $(PROJECT_VENV)/bin/python -c \
+		'import json,sys; print(json.load(sys.stdin).get("done_reason",""))'); \
+	if [ "$$done_reason" != "stop" ]; then \
+		echo "!!> smoke test FAILED: done_reason='$$done_reason' (expected 'stop')"; \
+		printf '%s' "$$result" | head -c 500; echo; \
+		exit 1; \
+	fi; \
+	echo "--> smoke test passed (done_reason=stop)"
