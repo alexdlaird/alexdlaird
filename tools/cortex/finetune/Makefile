@@ -58,6 +58,9 @@ export: install
 	)
 
 register:
+	@# Clear Ollama's cached manifest/blob digest for this model; otherwise
+	@# re-registering an overwritten GGUF trips "digest mismatch".
+	-@ollama rm $(MODEL_NAME) 2>/dev/null
 	ollama create $(MODEL_NAME) -f $$($(PROJECT_VENV)/bin/python -c \
 		"from config import FINETUNE_OUTPUT_DIR; print(FINETUNE_OUTPUT_DIR / 'gguf' / 'Modelfile')")
 	@$(MAKE) --no-print-directory smoke-test
