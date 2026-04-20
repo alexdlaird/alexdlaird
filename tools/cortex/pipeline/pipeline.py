@@ -2,12 +2,15 @@ __copyright__ = "Copyright (c) 2026 Alex Laird"
 __license__ = "MIT"
 
 import json
+import re
 from typing import Generator, Iterator, List, Union
 
 import requests
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 class Pipeline:
@@ -110,39 +113,62 @@ class Pipeline:
         if context:
             system_content += f"\n\nUse the following code excerpts to inform your answer:\n\n{context}"
 
+        # Strip any prior thinking tokens from assistant history before sending to Ollama
         filtered = [m for m in messages if m.get("role") != "system"]
-        augmented_messages = [{"role": "system", "content": system_content}] + filtered
+        clean_history = []
+        for m in filtered:
+            if m.get("role") == "assistant" and m.get("content"):
+                m = {**m, "content": _THINK_RE.sub("", m["content"]).strip()}
+            clean_history.append(m)
+        augmented_messages = [{"role": "system", "content": system_content}] + clean_history
 
         stream = body.get("stream", True)
 
+        # Use /api/chat (Ollama native NDJSON) so thinking and content arrive in
+        # separate fields — avoids <think> tokens fragmenting across SSE chunks.
         response = requests.post(
-            f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
+            f"{self.valves.OLLAMA_BASE_URL}/api/chat",
             json={
                 "model": self._resolve_model(),
                 "messages": augmented_messages,
                 "stream": stream,
+                "think": True,
             },
             stream=stream,
         )
         response.raise_for_status()
 
         if stream:
+            in_thinking = False
             for line in response.iter_lines():
                 if not line:
                     continue
-                raw = line.decode("utf-8")
-                if not raw.startswith("data: "):
-                    continue
-                data_str = raw[6:]
-                if data_str.strip() == "[DONE]":
-                    break
                 try:
-                    data = json.loads(data_str)
+                    data = json.loads(line.decode("utf-8"))
                 except Exception:
                     continue
-                content = data.get("choices", [{}])[0].get("delta", {}).get("content")
+                if data.get("done"):
+                    break
+                msg = data.get("message", {})
+                thinking = msg.get("thinking") or ""
+                content = msg.get("content") or ""
+                if thinking:
+                    if not in_thinking:
+                        yield "<think>"
+                        in_thinking = True
+                    yield thinking
+                elif in_thinking:
+                    yield "</think>"
+                    in_thinking = False
                 if content:
                     yield content
+            if in_thinking:
+                yield "</think>"
         else:
-            content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "")
-            yield content
+            msg = response.json().get("message", {})
+            thinking = msg.get("thinking") or ""
+            content = msg.get("content") or ""
+            if thinking:
+                yield f"<think>{thinking}</think>\n\n"
+            if content:
+                yield content
