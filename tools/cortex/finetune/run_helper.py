@@ -25,7 +25,6 @@ def follow(proc, log_path, label):
     Never returns.
     """
     log_path = Path(log_path)
-    banner(f"{label.upper()} — STARTING")
     try:
         with open(log_path) as f:
             while True:
@@ -46,8 +45,4 @@ def follow(proc, log_path, label):
         print(f"    Reattach: tail -f {log_path}\n", flush=True)
         sys.exit(0)
 
-    if proc.returncode == 0:
-        banner(f"{label.upper()} — DONE")
-    else:
-        banner(f"{label.upper()} — FAILED  (exit {proc.returncode})")
     sys.exit(proc.returncode)
