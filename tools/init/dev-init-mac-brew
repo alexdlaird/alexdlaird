@@ -28,46 +28,11 @@ brew install zsh vim tmux \
              ffmpeg bento4 gettext grep gnu-sed wget curl \
              openssl@3 ca-certificates gpg \
              awscli awslogs gh twilio hashicorp/tap/terraform
+             anomalyco/tap/opencode
 
-brew install --cask android-commandlinetools
+brew install --cask android-commandlinetools claude-code
 
-# Install aider (AI coding assistant) pointed at the cortex RAG pipeline
-if ! command -v aider 2>&1 >/dev/null; then
-  pip install aider-chat
-fi
-if [[ ! -f "$HOME/.aider.conf.yml" ]]; then
-  cat > "$HOME/.aider.conf.yml" <<EOF
-model: openai/cortex
-openai-api-base: http://cortex:9099/v1
-openai-api-key: 0p3n-w3bu!
-model-settings-file: ~/.aider.model.settings.yml
-EOF
-fi
-if [[ ! -f "$HOME/.aider.model.settings.yml" ]]; then
-  cat > "$HOME/.aider.model.settings.yml" <<EOF
-- name: openai/cortex
-  edit_format: diff
-  weak_model_name: openai/cortex
-  use_repo_map: true
-  send_undo_reply: true
-  lazy: false
-  reminder: sys
-  examples_as_sys_msg: true
-  streaming: true
-EOF
-fi
-if [[ ! -f "$HOME/.aider.model.metadata.json" ]]; then
-  cat > "$HOME/.aider.model.metadata.json" <<EOF
-{
-  "openai/cortex": {
-    "max_tokens": 128000,
-    "input_cost_token": 0,
-    "output_cost_token": 0,
-    "caches_by_default": false
-  }
-}
-EOF
-fi
+curl -fsSL https://ollama.com/install.sh | sh
 
 # Symlink autoenv (skip if already exists)
 if [[ ! -L "$HOME/.autoenv" ]]; then
