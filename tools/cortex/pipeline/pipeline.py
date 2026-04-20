@@ -11,7 +11,6 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
-_MAX_THINK_BYTES = 65536
 
 
 class Pipeline:
@@ -97,11 +96,13 @@ class Pipeline:
 
         return "\n\n---\n\n".join(chunks)
 
-    def _iter_stripped(self, response) -> Generator:
-        """Stream Ollama SSE, stripping <think>...</think> blocks."""
-        buf = ""
-        in_think = False
-        think_bytes = 0
+    def _iter_stream(self, response, forward_reasoning: bool) -> Generator:
+        """
+        Consume Ollama SSE. Reasoning tokens are in delta.reasoning; response tokens
+        in delta.content. For stream clients (forward_reasoning=True), wrap reasoning
+        in <think>…</think> so Open WebUI renders it as a collapsible section.
+        """
+        reasoning_open = False
 
         for line in response.iter_lines():
             if not line:
@@ -117,41 +118,23 @@ class Pipeline:
             except Exception:
                 continue
             choices = data.get("choices") or [{}]
-            chunk = choices[0].get("delta", {}).get("content") or ""
-            if not chunk:
-                continue
+            delta = choices[0].get("delta", {})
+            reasoning = delta.get("reasoning") or ""
+            content = delta.get("content") or ""
 
-            buf += chunk
-            while buf:
-                if not in_think:
-                    start = buf.find("<think>")
-                    if start == -1:
-                        yield buf
-                        buf = ""
-                    else:
-                        if start > 0:
-                            yield buf[:start]
-                        in_think = True
-                        think_bytes = 0
-                        buf = buf[start + 7:]
-                else:
-                    end = buf.find("</think>")
-                    if end == -1:
-                        think_bytes += len(buf)
-                        if think_bytes > _MAX_THINK_BYTES:
-                            # Safety valve: thinking ran away, treat remainder as content
-                            in_think = False
-                            yield buf
-                            buf = ""
-                        else:
-                            buf = buf[-7:] if len(buf) > 7 else buf
-                            break
-                    else:
-                        in_think = False
-                        buf = buf[end + 8:].lstrip("\n")
+            if forward_reasoning and reasoning:
+                if not reasoning_open:
+                    yield "<think>"
+                    reasoning_open = True
+                yield reasoning
+            if content:
+                if reasoning_open:
+                    yield "</think>"
+                    reasoning_open = False
+                yield content
 
-        if buf and not in_think:
-            yield buf
+        if reasoning_open:
+            yield "</think>"
 
     def pipe(
         self,
@@ -181,7 +164,6 @@ class Pipeline:
         client_wants_stream = body.get("stream", True)
 
         try:
-            # Always stream from Ollama to avoid blocking timeouts during long thinking phases
             response = requests.post(
                 f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
                 json={
@@ -198,8 +180,8 @@ class Pipeline:
 
         try:
             if client_wants_stream:
-                yield from self._iter_stripped(response)
+                yield from self._iter_stream(response, forward_reasoning=True)
             else:
-                yield "".join(self._iter_stripped(response))
+                yield "".join(self._iter_stream(response, forward_reasoning=False))
         except Exception as e:
             yield f"Pipeline error streaming response: {e}"
