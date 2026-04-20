@@ -22,13 +22,6 @@ from run_helper import banner, follow
 logger = logging.getLogger(__name__)
 
 GENERATION_PROMPT = (
-    "You are a coding assistant named cortex. Given a code or documentation chunk,"
-    "generate ONE clear  technical question a developer might ask about it, and a "
-    "thorough answer. Respond ONLY with valid JSON: "
-    "{\"question\": \"...\", \"answer\": \"...\"}"
-)
-
-GENERATION_PROMPT_THINKING = (
     "You are a coding assistant named cortex. Given a code or documentation chunk, "
     "generate ONE clear technical question a developer might ask about it, a concise "
     "chain-of-thought reasoning process a developer would use to arrive at the answer, "
@@ -90,7 +83,6 @@ def _parse_json_response(content):
         return json.loads(re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content))
     except json.JSONDecodeError:
         pass
-    # Fallback: regex extract each field
     fields = {}
     for key in ("question", "thinking", "answer"):
         m = re.search(rf'"{key}"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
@@ -99,8 +91,7 @@ def _parse_json_response(content):
     return fields if fields else None
 
 
-def generate_pair(chunk_text, ollama_base_url, model, thinking=False):
-    prompt = GENERATION_PROMPT_THINKING if thinking else GENERATION_PROMPT
+def generate_pair(chunk_text, ollama_base_url, model):
     try:
         response = requests.post(
             f"{ollama_base_url}/api/chat",
@@ -108,7 +99,7 @@ def generate_pair(chunk_text, ollama_base_url, model, thinking=False):
                 "model": model,
                 "stream": False,
                 "messages": [
-                    {"role": "system", "content": prompt},
+                    {"role": "system", "content": GENERATION_PROMPT},
                     {"role": "user", "content": chunk_text},
                 ],
             },
@@ -125,10 +116,9 @@ def generate_pair(chunk_text, ollama_base_url, model, thinking=False):
         if not question or not answer:
             return None
 
-        if thinking:
-            thinking_text = pair.get("thinking", "").strip()
-            if thinking_text:
-                answer = f"<think>\n{thinking_text}\n</think>\n{answer}"
+        thinking_text = pair.get("thinking", "").strip()
+        if thinking_text:
+            answer = f"<think>\n{thinking_text}\n</think>\n{answer}"
 
         return question, answer
     except Exception as e:
@@ -144,7 +134,7 @@ def to_sharegpt(question, answer):
     ]}
 
 
-def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path, include_tests=False, thinking=False):
+def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path, include_tests=False):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if append else "w"
 
@@ -180,7 +170,7 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
                 break
             total += 1
 
-            result = generate_pair(chunk_text, ollama_base_url, model, thinking=thinking)
+            result = generate_pair(chunk_text, ollama_base_url, model)
             if result is None:
                 skipped += 1
                 continue
@@ -240,7 +230,6 @@ if __name__ == "__main__":
     parser.add_argument("--ollama-model", default=OLLAMA_CHAT_MODEL, help="Ollama model for generation")
     parser.add_argument("--append", action="store_true", help="Append to existing output instead of overwriting")
     parser.add_argument("--include-tests", action="store_true", help="Include test file chunks in training data")
-    parser.add_argument("--thinking", action="store_true", help="Generate thinking tokens (<think>...</think>) in answers")
     parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
 
@@ -253,7 +242,6 @@ if __name__ == "__main__":
         sample_every, limit = prompt_run_config(args.collection, QDRANT_URL, include_tests=args.include_tests)
 
     if not args.bg:
-        # Re-launch self in background with resolved args
         log_path = Path("logs") / "generate-data.log"
         log_path.parent.mkdir(exist_ok=True)
         cmd = [
@@ -270,8 +258,6 @@ if __name__ == "__main__":
             cmd += ["--append"]
         if args.include_tests:
             cmd += ["--include-tests"]
-        if args.thinking:
-            cmd += ["--thinking"]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         follow(proc, log_path, "generate-data")
@@ -287,6 +273,5 @@ if __name__ == "__main__":
             append=args.append,
             seed_path=SEED_DATA_PATHS,
             include_tests=args.include_tests,
-            thinking=args.thinking,
         )
         banner("GENERATE-DATA — DONE")
