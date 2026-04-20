@@ -38,6 +38,7 @@ def load_model_and_tokenizer():
         max_seq_length=MAX_SEQ_LENGTH,
         dtype=None,
         load_in_4bit=True,
+        fix_mistral_regex=True,
     )
     model = FastLanguageModel.get_peft_model(
         model,
