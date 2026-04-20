@@ -124,22 +124,19 @@ class Pipeline:
 
         stream = body.get("stream", True)
 
-        # Use /api/chat (Ollama native NDJSON) so thinking and content arrive in
-        # separate fields — avoids <think> tokens fragmenting across SSE chunks.
+        # Use /api/chat (Ollama native NDJSON) — simpler than /v1/chat/completions SSE.
         response = requests.post(
             f"{self.valves.OLLAMA_BASE_URL}/api/chat",
             json={
                 "model": self._resolve_model(),
                 "messages": augmented_messages,
                 "stream": stream,
-                "think": True,
             },
             stream=stream,
         )
         response.raise_for_status()
 
         if stream:
-            in_thinking = False
             for line in response.iter_lines():
                 if not line:
                     continue
@@ -149,26 +146,9 @@ class Pipeline:
                     continue
                 if data.get("done"):
                     break
-                msg = data.get("message", {})
-                thinking = msg.get("thinking") or ""
-                content = msg.get("content") or ""
-                if thinking:
-                    if not in_thinking:
-                        yield "<think>"
-                        in_thinking = True
-                    yield thinking
-                elif in_thinking:
-                    yield "</think>"
-                    in_thinking = False
+                content = (data.get("message") or {}).get("content") or ""
                 if content:
                     yield content
-            if in_thinking:
-                yield "</think>"
         else:
-            msg = response.json().get("message", {})
-            thinking = msg.get("thinking") or ""
-            content = msg.get("content") or ""
-            if thinking:
-                yield f"<think>{thinking}</think>\n\n"
-            if content:
-                yield content
+            content = (response.json().get("message") or {}).get("content") or ""
+            yield content
