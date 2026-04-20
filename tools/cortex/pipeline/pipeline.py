@@ -128,7 +128,21 @@ class Pipeline:
 
         if stream:
             for line in response.iter_lines():
-                if line:
-                    yield line.decode("utf-8") + "\n"
+                if not line:
+                    continue
+                raw = line.decode("utf-8")
+                if not raw.startswith("data: "):
+                    continue
+                data_str = raw[6:]
+                if data_str.strip() == "[DONE]":
+                    break
+                try:
+                    data = json.loads(data_str)
+                except Exception:
+                    continue
+                content = data.get("choices", [{}])[0].get("delta", {}).get("content")
+                if content:
+                    yield content
         else:
-            yield response.text
+            content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+            yield content
