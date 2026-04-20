@@ -32,6 +32,8 @@ brew install zsh vim tmux \
 
 brew install --cask android-commandlinetools claude-code
 
+npm install -g @mariozechner/pi-coding-agent
+
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Symlink autoenv (skip if already exists)
