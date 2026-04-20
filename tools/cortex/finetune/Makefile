@@ -9,6 +9,7 @@ TOOLS_CORTEX  ?= $(HOME)/Developer/alexdlaird/tools/cortex
 QUANT         ?= q4_k_m
 MODEL_NAME    ?= cortex
 INCLUDE_TESTS ?= false
+THINKING      ?= false
 
 all: install
 
@@ -42,7 +43,7 @@ generate-data: install
 	@mkdir -p $(LOG_DIR)
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/generate_data.py $(if $(filter true,$(INCLUDE_TESTS)),--include-tests,); \
+		python $(TOOLS_CORTEX)/finetune/generate_data.py $(if $(filter true,$(INCLUDE_TESTS)),--include-tests,) $(if $(filter true,$(THINKING)),--thinking,); \
 	)
 
 train: install
