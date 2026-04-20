@@ -5,11 +5,13 @@ import unsloth  # noqa: F401 — must be imported before trl/transformers/peft
 
 import argparse
 import logging
+import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
+from run_helper import follow
 from config import (
     FINETUNE_DATA_DIR,
     FINETUNE_OUTPUT_DIR,
@@ -145,11 +147,8 @@ if __name__ == "__main__":
     output_path = args.output or FINETUNE_OUTPUT_DIR
 
     if not args.bg:
-        import os
-        import subprocess
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
-        log_path = log_dir / "train.log"
+        log_path = Path("logs") / "train.log"
+        log_path.parent.mkdir(exist_ok=True)
         cmd = [
             sys.executable, __file__,
             "--data", str(data_path),
@@ -162,8 +161,7 @@ if __name__ == "__main__":
             cmd += ["--merge-only"]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
-        print(f"\n--> train running in background (PID {proc.pid}), tailing log ...")
-        os.execlp("tail", "tail", "-f", str(log_path))
+        follow(proc, log_path, "train")
     elif args.merge_only:
         merge(output_path)
     else:

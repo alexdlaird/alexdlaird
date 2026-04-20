@@ -3,12 +3,14 @@ __license__ = "MIT"
 
 import argparse
 import logging
+import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
 from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, SYSTEM_PROMPT
+from run_helper import follow
 
 logger = logging.getLogger(__name__)
 
@@ -111,11 +113,8 @@ if __name__ == "__main__":
     output_path = args.output or (FINETUNE_OUTPUT_DIR / "gguf")
 
     if not args.bg:
-        import os
-        import subprocess
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
-        log_path = log_dir / "export.log"
+        log_path = Path("logs") / "export.log"
+        log_path.parent.mkdir(exist_ok=True)
         cmd = [
             sys.executable, __file__,
             "--adapter", str(adapter_path),
@@ -126,7 +125,6 @@ if __name__ == "__main__":
         ]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
-        print(f"\n--> export running in background (PID {proc.pid}), tailing log ...")
-        os.execlp("tail", "tail", "-f", str(log_path))
+        follow(proc, log_path, "export")
     else:
         export(adapter_path, output_path, args.quant, args.model_name)
