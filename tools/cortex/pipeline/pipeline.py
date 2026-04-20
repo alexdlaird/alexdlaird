@@ -141,8 +141,8 @@ class Pipeline:
 
         try:
             if stream:
-                buf = ""
-                in_think = False
+                chunks_received = 0
+                chunks_yielded = 0
                 for line in response.iter_lines():
                     if not line:
                         continue
@@ -157,32 +157,18 @@ class Pipeline:
                     except Exception:
                         continue
                     choices = data.get("choices") or [{}]
-                    chunk = choices[0].get("delta", {}).get("content") or ""
-                    if not chunk:
+                    content = choices[0].get("delta", {}).get("content") or ""
+                    if not content:
                         continue
-                    buf += chunk
-                    while buf:
-                        if not in_think:
-                            start = buf.find("<think>")
-                            if start == -1:
-                                yield buf
-                                buf = ""
-                            else:
-                                if start > 0:
-                                    yield buf[:start]
-                                in_think = True
-                                buf = buf[start + 7:]
-                        else:
-                            end = buf.find("</think>")
-                            if end == -1:
-                                buf = ""  # discard thinking content, wait for close tag
-                            else:
-                                in_think = False
-                                buf = buf[end + 8:].lstrip("\n")
+                    chunks_received += 1
+                    yield content
+                    chunks_yielded += 1
+                print(f"[pipeline] stream done: {chunks_received} chunks received, {chunks_yielded} yielded")
             else:
                 data = response.json()
                 choices = data.get("choices") or [{}]
                 content = choices[0].get("message", {}).get("content") or ""
-                yield _THINK_RE.sub("", content).strip()
+                print(f"[pipeline] non-stream done: {len(content)} chars")
+                yield content
         except Exception as e:
             yield f"Pipeline error streaming response: {e}"
