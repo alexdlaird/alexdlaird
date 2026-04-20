@@ -3,7 +3,6 @@ __license__ = "MIT"
 
 import argparse
 import logging
-import subprocess
 import sys
 from pathlib import Path
 
@@ -13,72 +12,37 @@ from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, SYSTEM_PROM
 
 logger = logging.getLogger(__name__)
 
-# Preferred: derive TEMPLATE + PARAMETER lines from stock `gemma4`'s Modelfile.
-# Unsloth's GGUF export doesn't reliably embed `tokenizer.chat_template` in
-# metadata, so without an explicit TEMPLATE Ollama falls back to a generic frame
-# that doesn't match how the model was trained — the model then generates but
-# never emits <end_of_turn>. Shelling out to `ollama show` keeps us in lockstep
-# with upstream tuning.
-STOCK_BASE_MODEL = "gemma4"
-_STRIP_DIRECTIVES = {"FROM", "SYSTEM"}
+# Explicit multi-turn Gemma chat template + sampling params. Stock gemma4 uses
+# `RENDERER gemma4` / `PARSER gemma4` directives that Ollama ties to the stock
+# blob digest and rejects for derived models, so we write our own frame. Without
+# this, Unsloth's GGUF export produces a file whose chat template metadata isn't
+# reliably propagated and Ollama's default frame doesn't match how the model was
+# trained — the model generates but never emits <end_of_turn>.
+MODELFILE_TEMPLATE = '''FROM __GGUF_PATH__
+TEMPLATE """{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 -}}
+<start_of_turn>{{ if eq .Role "user" }}user
+{{ else }}model
+{{ end }}
+{{- if and (eq .Role "user") (eq $i 0) $.System }}{{ $.System }}
 
-# Used only when stock gemma4's Modelfile can't be read at export time.
-MODELFILE_FALLBACK = """FROM __GGUF_PATH__
-TEMPLATE \"\"\"<start_of_turn>user
-{{ if .System }}{{ .System }}
-
-{{ end }}{{ .Prompt }}<end_of_turn>
-<start_of_turn>model
-{{ .Response }}<end_of_turn>
-\"\"\"
+{{ end }}{{ .Content }}<end_of_turn>
+{{ if $last }}<start_of_turn>model
+{{ end }}
+{{- end }}"""
 PARAMETER stop "<end_of_turn>"
 PARAMETER stop "<start_of_turn>"
 PARAMETER temperature 1.0
 PARAMETER top_k 64
 PARAMETER top_p 0.95
+PARAMETER repeat_penalty 1.0
 PARAMETER num_ctx 8192
-"""
+'''
 
 
 def _build_modelfile(gguf_path, system_prompt):
-    result = subprocess.run(
-        ["ollama", "show", "--modelfile", STOCK_BASE_MODEL],
-        capture_output=True, text=True, check=False,
-    )
-    if result.returncode == 0 and "TEMPLATE" in result.stdout:
-        logger.info(f"Deriving Modelfile from stock {STOCK_BASE_MODEL} (TEMPLATE + PARAMETER)")
-        body = _rewrite_from_stock(result.stdout, gguf_path)
-    else:
-        logger.warning(
-            f"`ollama show --modelfile {STOCK_BASE_MODEL}` unavailable — using hardcoded fallback"
-        )
-        body = MODELFILE_FALLBACK.replace("__GGUF_PATH__", str(gguf_path))
+    body = MODELFILE_TEMPLATE.replace("__GGUF_PATH__", str(gguf_path))
     return body.rstrip() + f'\n\nSYSTEM """{system_prompt}"""\n'
-
-
-def _rewrite_from_stock(stock_modelfile, gguf_path):
-    """Replace FROM with our GGUF path and drop any SYSTEM block; keep everything else."""
-    out = [f"FROM {gguf_path}"]
-    lines = stock_modelfile.splitlines()
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.lstrip()
-        if not stripped or stripped.startswith("#"):
-            i += 1
-            continue
-        directive = stripped.split(None, 1)[0]
-        if directive in _STRIP_DIRECTIVES:
-            # Skip a potentially multi-line triple-quoted value.
-            if '"""' in line and line.count('"""') == 1:
-                i += 1
-                while i < len(lines) and '"""' not in lines[i]:
-                    i += 1
-            i += 1
-            continue
-        out.append(line)
-        i += 1
-    return "\n".join(out)
 
 
 def export(adapter_path, output_path, quant, model_name):
