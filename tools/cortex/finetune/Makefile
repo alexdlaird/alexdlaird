@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean pretrain-tone generate-data train export register smoke-test
+.PHONY: all install nopyc clean pretrain-tone generate-data train export register unregister smoke-test
 
 LOG_DIR := logs
 
@@ -56,6 +56,10 @@ export: install
 		source $(PROJECT_VENV)/bin/activate; \
 		python $(TOOLS_CORTEX)/finetune/export.py --quant $(QUANT) --model-name $(MODEL_NAME); \
 	)
+
+unregister:
+	-@ollama rm $(MODEL_NAME) 2>/dev/null
+	docker restart pipelines
 
 register:
 	@# Clear Ollama's cached manifest/blob digest for this model; otherwise
