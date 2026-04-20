@@ -94,11 +94,19 @@ def export(adapter_path, output_path, quant, model_name):
 
     output_path.mkdir(parents=True, exist_ok=True)
 
+    # Unsloth may ignore output_path and write to {adapter_name}_gguf/ alongside the adapter
+    unsloth_output = adapter_path.parent / (adapter_path.name + "_gguf")
+
+    # Clear GGUFs from prior runs so the Modelfile's FROM always points at a
+    # freshly-hashed file. Without this, a stale file in one output dir can
+    # shadow a new file in the other, and Ollama later sees a digest mismatch.
+    for stale in list(output_path.glob("*.gguf")) + list(unsloth_output.glob("*.gguf")):
+        logger.info(f"Removing stale GGUF: {stale}")
+        stale.unlink()
+
     logger.info(f"Exporting GGUF ({quant}) to {output_path} ...")
     model.save_pretrained_gguf(str(output_path), tokenizer, quantization_method=quant)
 
-    # Unsloth may ignore output_path and write to {adapter_name}_gguf/ alongside the adapter
-    unsloth_output = adapter_path.parent / (adapter_path.name + "_gguf")
     gguf_files = list(output_path.glob("*.gguf")) + list(unsloth_output.glob("*.gguf"))
     if not gguf_files:
         logger.error("No .gguf file found after export — check Unsloth output.")
