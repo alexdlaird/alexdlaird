@@ -10,11 +10,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
+import subprocess
+
 import requests
 from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATHS, SYSTEM_PROMPT
+from run_helper import follow
 
 logger = logging.getLogger(__name__)
 
@@ -224,11 +227,8 @@ if __name__ == "__main__":
 
     if not args.bg:
         # Re-launch self in background with resolved args
-        import os
-        import subprocess
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
-        log_path = log_dir / "generate-data.log"
+        log_path = Path("logs") / "generate-data.log"
+        log_path.parent.mkdir(exist_ok=True)
         cmd = [
             sys.executable, __file__,
             "--sample-every", str(sample_every),
@@ -245,8 +245,7 @@ if __name__ == "__main__":
             cmd += ["--include-tests"]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
-        print(f"\n--> generate-data running in background (PID {proc.pid}), tailing log ...")
-        os.execlp("tail", "tail", "-f", str(log_path))
+        follow(proc, log_path, "generate-data")
     else:
         generate_data(
             collection=args.collection,
