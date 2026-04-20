@@ -17,7 +17,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATHS, SYSTEM_PROMPT
-from run_helper import follow
+from run_helper import banner, follow
 
 logger = logging.getLogger(__name__)
 
@@ -247,6 +247,7 @@ if __name__ == "__main__":
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         follow(proc, log_path, "generate-data")
     else:
+        banner("GENERATE-DATA — STARTING")
         generate_data(
             collection=args.collection,
             limit=limit,
@@ -258,3 +259,4 @@ if __name__ == "__main__":
             seed_path=SEED_DATA_PATHS,
             include_tests=args.include_tests,
         )
+        banner("GENERATE-DATA — DONE")

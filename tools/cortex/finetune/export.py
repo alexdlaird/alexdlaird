@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path.cwd()))
 
 from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, SYSTEM_PROMPT
-from run_helper import follow
+from run_helper import banner, follow
 
 logger = logging.getLogger(__name__)
 
@@ -127,4 +127,6 @@ if __name__ == "__main__":
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         follow(proc, log_path, "export")
     else:
+        banner("EXPORT — STARTING")
         export(adapter_path, output_path, args.quant, args.model_name)
+        banner("EXPORT — DONE")
