@@ -127,52 +127,8 @@ class Pipeline:
         response.raise_for_status()
 
         if stream:
-            in_think = False
             for line in response.iter_lines():
-                if not line:
-                    continue
-                raw = line.decode("utf-8")
-                if not raw.startswith("data: "):
-                    yield raw + "\n"
-                    continue
-                data_str = raw[6:]
-                if data_str.strip() == "[DONE]":
-                    yield raw + "\n"
-                    continue
-                try:
-                    data = json.loads(data_str)
-                except Exception:
-                    yield raw + "\n"
-                    continue
-                choices = data.get("choices", [])
-                if not choices:
-                    yield raw + "\n"
-                    continue
-                delta = choices[0].get("delta", {})
-                content = delta.get("content")
-                if not content:
-                    yield raw + "\n"
-                    continue
-                output = ""
-                i = 0
-                while i < len(content):
-                    if not in_think:
-                        think_start = content.find("<think>", i)
-                        if think_start == -1:
-                            output += content[i:]
-                            break
-                        output += content[i:think_start]
-                        in_think = True
-                        i = think_start + len("<think>")
-                    else:
-                        think_end = content.find("</think>", i)
-                        if think_end == -1:
-                            break
-                        in_think = False
-                        i = think_end + len("</think>")
-                if not output:
-                    continue
-                data["choices"][0]["delta"]["content"] = output
-                yield "data: " + json.dumps(data) + "\n"
+                if line:
+                    yield line.decode("utf-8") + "\n"
         else:
             yield response.text
