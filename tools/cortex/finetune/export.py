@@ -38,7 +38,7 @@ PARAMETER temperature 1.0
 PARAMETER top_k 64
 PARAMETER top_p 0.95
 PARAMETER repeat_penalty 1.0
-PARAMETER num_ctx 8192
+PARAMETER num_ctx 32768
 '''
 
 
@@ -56,6 +56,7 @@ def export(adapter_path, output_path, quant, model_name):
         max_seq_length=MAX_SEQ_LENGTH,
         dtype=None,
         load_in_4bit=True,
+        # fix_mistral_regex=True,  # enable if tokenizer warnings appear during export
     )
 
     output_path.mkdir(parents=True, exist_ok=True)
