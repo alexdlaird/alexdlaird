@@ -28,6 +28,14 @@ GENERATION_PROMPT = (
     "{\"question\": \"...\", \"answer\": \"...\"}"
 )
 
+GENERATION_PROMPT_THINKING = (
+    "You are a coding assistant named cortex. Given a code or documentation chunk, "
+    "generate ONE clear technical question a developer might ask about it, a concise "
+    "chain-of-thought reasoning process a developer would use to arrive at the answer, "
+    "and a thorough answer. Respond ONLY with valid JSON: "
+    "{\"question\": \"...\", \"thinking\": \"...\", \"answer\": \"...\"}"
+)
+
 
 def scroll_chunks(client, collection, sample_every, include_tests=False):
     offset = None
@@ -76,7 +84,23 @@ def inject_system_prompt(record):
     return {"conversations": [{"from": "system", "value": SYSTEM_PROMPT}] + convs}
 
 
-def generate_pair(chunk_text, ollama_base_url, model):
+def _parse_json_response(content):
+    content = content.removeprefix("```json").removesuffix("```").strip()
+    try:
+        return json.loads(re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content))
+    except json.JSONDecodeError:
+        pass
+    # Fallback: regex extract each field
+    fields = {}
+    for key in ("question", "thinking", "answer"):
+        m = re.search(rf'"{key}"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
+        if m:
+            fields[key] = m.group(1)
+    return fields if fields else None
+
+
+def generate_pair(chunk_text, ollama_base_url, model, thinking=False):
+    prompt = GENERATION_PROMPT_THINKING if thinking else GENERATION_PROMPT
     try:
         response = requests.post(
             f"{ollama_base_url}/api/chat",
@@ -84,7 +108,7 @@ def generate_pair(chunk_text, ollama_base_url, model):
                 "model": model,
                 "stream": False,
                 "messages": [
-                    {"role": "system", "content": GENERATION_PROMPT},
+                    {"role": "system", "content": prompt},
                     {"role": "user", "content": chunk_text},
                 ],
             },
@@ -92,19 +116,21 @@ def generate_pair(chunk_text, ollama_base_url, model):
         )
         response.raise_for_status()
         content = response.json()["message"]["content"].strip()
-        content = content.removeprefix("```json").removesuffix("```").strip()
-        try:
-            pair = json.loads(re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content))
-        except json.JSONDecodeError:
-            q_match = re.search(r'"question"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
-            a_match = re.search(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
-            if not q_match or not a_match:
-                raise ValueError("Could not extract question/answer from response")
-            pair = {"question": q_match.group(1), "answer": a_match.group(1)}
+        pair = _parse_json_response(content)
+        if not pair:
+            raise ValueError("Could not extract fields from response")
+
         question = pair.get("question", "").strip()
         answer = pair.get("answer", "").strip()
-        if question and answer:
-            return question, answer
+        if not question or not answer:
+            return None
+
+        if thinking:
+            thinking_text = pair.get("thinking", "").strip()
+            if thinking_text:
+                answer = f"<think>\n{thinking_text}\n</think>\n{answer}"
+
+        return question, answer
     except Exception as e:
         logger.warning(f"Skipping chunk — generation failed: {e}")
     return None
@@ -118,7 +144,7 @@ def to_sharegpt(question, answer):
     ]}
 
 
-def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path, include_tests=False):
+def generate_data(collection, limit, sample_every, output_path, ollama_base_url, model, append, seed_path, include_tests=False, thinking=False):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if append else "w"
 
@@ -154,7 +180,7 @@ def generate_data(collection, limit, sample_every, output_path, ollama_base_url,
                 break
             total += 1
 
-            result = generate_pair(chunk_text, ollama_base_url, model)
+            result = generate_pair(chunk_text, ollama_base_url, model, thinking=thinking)
             if result is None:
                 skipped += 1
                 continue
@@ -214,6 +240,7 @@ if __name__ == "__main__":
     parser.add_argument("--ollama-model", default=OLLAMA_CHAT_MODEL, help="Ollama model for generation")
     parser.add_argument("--append", action="store_true", help="Append to existing output instead of overwriting")
     parser.add_argument("--include-tests", action="store_true", help="Include test file chunks in training data")
+    parser.add_argument("--thinking", action="store_true", help="Generate thinking tokens (<think>...</think>) in answers")
     parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
 
@@ -243,6 +270,8 @@ if __name__ == "__main__":
             cmd += ["--append"]
         if args.include_tests:
             cmd += ["--include-tests"]
+        if args.thinking:
+            cmd += ["--thinking"]
         with open(log_path, "w") as log_file:
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         follow(proc, log_path, "generate-data")
@@ -258,5 +287,6 @@ if __name__ == "__main__":
             append=args.append,
             seed_path=SEED_DATA_PATHS,
             include_tests=args.include_tests,
+            thinking=args.thinking,
         )
         banner("GENERATE-DATA — DONE")
