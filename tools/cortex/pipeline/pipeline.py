@@ -124,31 +124,44 @@ class Pipeline:
 
         stream = body.get("stream", True)
 
-        # Use /api/chat (Ollama native NDJSON) — simpler than /v1/chat/completions SSE.
-        response = requests.post(
-            f"{self.valves.OLLAMA_BASE_URL}/api/chat",
-            json={
-                "model": self._resolve_model(),
-                "messages": augmented_messages,
-                "stream": stream,
-            },
-            stream=stream,
-        )
-        response.raise_for_status()
+        try:
+            response = requests.post(
+                f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
+                json={
+                    "model": self._resolve_model(),
+                    "messages": augmented_messages,
+                    "stream": stream,
+                },
+                stream=stream,
+            )
+            response.raise_for_status()
+        except Exception as e:
+            yield f"Pipeline error contacting Ollama: {e}"
+            return
 
-        if stream:
-            for line in response.iter_lines():
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line.decode("utf-8"))
-                except Exception:
-                    continue
-                if data.get("done"):
-                    break
-                content = (data.get("message") or {}).get("content") or ""
-                if content:
-                    yield content
-        else:
-            content = (response.json().get("message") or {}).get("content") or ""
-            yield content
+        try:
+            if stream:
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    raw = line.decode("utf-8")
+                    if not raw.startswith("data: "):
+                        continue
+                    data_str = raw[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(data_str)
+                    except Exception:
+                        continue
+                    choices = data.get("choices") or [{}]
+                    content = choices[0].get("delta", {}).get("content") or ""
+                    if content:
+                        yield content
+            else:
+                data = response.json()
+                choices = data.get("choices") or [{}]
+                content = choices[0].get("message", {}).get("content") or ""
+                yield content
+        except Exception as e:
+            yield f"Pipeline error streaming response: {e}"
