@@ -76,8 +76,15 @@ def export(adapter_path, output_path, quant, model_name):
         logger.error("No .gguf file found after export — check Unsloth output.")
         return
 
-    quantized = [f for f in gguf_files if "BF16" not in f.name]
-    gguf_path = (quantized[0] if quantized else gguf_files[0]).resolve()
+    # Exclude BF16 intermediates and vision projector (mmproj). For sharded
+    # models pick the primary shard (00001-of-N); fall back to any non-shard
+    # file; last resort: whatever is first.
+    candidates = [f for f in gguf_files if "BF16" not in f.name and "mmproj" not in f.name]
+    gguf_path = (
+        next((f for f in candidates if "00001-of" in f.name), None)
+        or next((f for f in candidates if "-of-" not in f.name), None)
+        or (candidates[0] if candidates else gguf_files[0])
+    ).resolve()
 
     modelfile_path = output_path / "Modelfile"
     modelfile_path.write_text(_build_modelfile(gguf_path, SYSTEM_PROMPT))
