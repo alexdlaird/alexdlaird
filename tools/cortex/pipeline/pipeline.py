@@ -141,6 +141,8 @@ class Pipeline:
 
         try:
             if stream:
+                buf = ""
+                in_think = False
                 for line in response.iter_lines():
                     if not line:
                         continue
@@ -155,13 +157,32 @@ class Pipeline:
                     except Exception:
                         continue
                     choices = data.get("choices") or [{}]
-                    content = choices[0].get("delta", {}).get("content") or ""
-                    if content:
-                        yield content
+                    chunk = choices[0].get("delta", {}).get("content") or ""
+                    if not chunk:
+                        continue
+                    buf += chunk
+                    while buf:
+                        if not in_think:
+                            start = buf.find("<think>")
+                            if start == -1:
+                                yield buf
+                                buf = ""
+                            else:
+                                if start > 0:
+                                    yield buf[:start]
+                                in_think = True
+                                buf = buf[start + 7:]
+                        else:
+                            end = buf.find("</think>")
+                            if end == -1:
+                                buf = ""  # discard thinking content, wait for close tag
+                            else:
+                                in_think = False
+                                buf = buf[end + 8:].lstrip("\n")
             else:
                 data = response.json()
                 choices = data.get("choices") or [{}]
                 content = choices[0].get("message", {}).get("content") or ""
-                yield content
+                yield _THINK_RE.sub("", content).strip()
         except Exception as e:
             yield f"Pipeline error streaming response: {e}"
