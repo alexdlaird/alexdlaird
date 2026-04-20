@@ -56,7 +56,7 @@ def export(adapter_path, output_path, quant, model_name):
         max_seq_length=MAX_SEQ_LENGTH,
         dtype=None,
         load_in_4bit=True,
-        # fix_mistral_regex=True,  # enable if tokenizer warnings appear during export
+        fix_mistral_regex=True,
     )
 
     output_path.mkdir(parents=True, exist_ok=True)
