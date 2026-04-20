@@ -11,6 +11,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+_MAX_THINK_BYTES = 65536
 
 
 class Pipeline:
@@ -96,6 +97,62 @@ class Pipeline:
 
         return "\n\n---\n\n".join(chunks)
 
+    def _iter_stripped(self, response) -> Generator:
+        """Stream Ollama SSE, stripping <think>...</think> blocks."""
+        buf = ""
+        in_think = False
+        think_bytes = 0
+
+        for line in response.iter_lines():
+            if not line:
+                continue
+            raw = line.decode("utf-8")
+            if not raw.startswith("data: "):
+                continue
+            data_str = raw[6:]
+            if data_str.strip() == "[DONE]":
+                break
+            try:
+                data = json.loads(data_str)
+            except Exception:
+                continue
+            choices = data.get("choices") or [{}]
+            chunk = choices[0].get("delta", {}).get("content") or ""
+            if not chunk:
+                continue
+
+            buf += chunk
+            while buf:
+                if not in_think:
+                    start = buf.find("<think>")
+                    if start == -1:
+                        yield buf
+                        buf = ""
+                    else:
+                        if start > 0:
+                            yield buf[:start]
+                        in_think = True
+                        think_bytes = 0
+                        buf = buf[start + 7:]
+                else:
+                    end = buf.find("</think>")
+                    if end == -1:
+                        think_bytes += len(buf)
+                        if think_bytes > _MAX_THINK_BYTES:
+                            # Safety valve: thinking ran away, treat remainder as content
+                            in_think = False
+                            yield buf
+                            buf = ""
+                        else:
+                            buf = buf[-7:] if len(buf) > 7 else buf
+                            break
+                    else:
+                        in_think = False
+                        buf = buf[end + 8:].lstrip("\n")
+
+        if buf and not in_think:
+            yield buf
+
     def pipe(
         self,
         user_message: str,
@@ -113,7 +170,6 @@ class Pipeline:
         if context:
             system_content += f"\n\nUse the following code excerpts to inform your answer:\n\n{context}"
 
-        # Strip any prior thinking tokens from assistant history before sending to Ollama
         filtered = [m for m in messages if m.get("role") != "system"]
         clean_history = []
         for m in filtered:
@@ -122,17 +178,18 @@ class Pipeline:
             clean_history.append(m)
         augmented_messages = [{"role": "system", "content": system_content}] + clean_history
 
-        stream = body.get("stream", True)
+        client_wants_stream = body.get("stream", True)
 
         try:
+            # Always stream from Ollama to avoid blocking timeouts during long thinking phases
             response = requests.post(
                 f"{self.valves.OLLAMA_BASE_URL}/v1/chat/completions",
                 json={
                     "model": self._resolve_model(),
                     "messages": augmented_messages,
-                    "stream": stream,
+                    "stream": True,
                 },
-                stream=stream,
+                stream=True,
             )
             response.raise_for_status()
         except Exception as e:
@@ -140,52 +197,9 @@ class Pipeline:
             return
 
         try:
-            if stream:
-                buf = ""
-                in_think = False
-                for line in response.iter_lines():
-                    if not line:
-                        continue
-                    raw = line.decode("utf-8")
-                    if not raw.startswith("data: "):
-                        continue
-                    data_str = raw[6:]
-                    if data_str.strip() == "[DONE]":
-                        break
-                    try:
-                        data = json.loads(data_str)
-                    except Exception:
-                        continue
-                    choices = data.get("choices") or [{}]
-                    chunk = choices[0].get("delta", {}).get("content") or ""
-                    if not chunk:
-                        continue
-                    buf += chunk
-                    while buf:
-                        if not in_think:
-                            start = buf.find("<think>")
-                            if start == -1:
-                                yield buf
-                                buf = ""
-                            else:
-                                if start > 0:
-                                    yield buf[:start]
-                                in_think = True
-                                buf = buf[start + 7:]
-                        else:
-                            end = buf.find("</think>")
-                            if end == -1:
-                                buf = buf[-7:] if len(buf) > 7 else buf
-                                break
-                            else:
-                                in_think = False
-                                buf = buf[end + 8:].lstrip("\n")
-                if buf and not in_think:
-                    yield buf
+            if client_wants_stream:
+                yield from self._iter_stripped(response)
             else:
-                data = response.json()
-                choices = data.get("choices") or [{}]
-                content = choices[0].get("message", {}).get("content") or ""
-                yield _THINK_RE.sub("", content).strip()
+                yield "".join(self._iter_stripped(response))
         except Exception as e:
             yield f"Pipeline error streaming response: {e}"
