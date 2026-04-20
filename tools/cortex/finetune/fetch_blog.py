@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path.cwd()))
 
 import requests
 from config import BLOG_OUTPUT_DIR, BLOG_SITEMAP_URL
+from run_helper import banner
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +108,11 @@ if __name__ == "__main__":
 
     output_dir = args.output or BLOG_OUTPUT_DIR
 
+    banner("FETCH-BLOG — STARTING")
     fetch_blog(
         output_dir=output_dir,
         sitemap_url=args.sitemap,
         delay=args.delay,
         limit=args.limit,
     )
+    banner("FETCH-BLOG — DONE")

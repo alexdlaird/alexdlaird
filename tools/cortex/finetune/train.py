@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
-from run_helper import follow
+from run_helper import banner, follow
 from config import (
     FINETUNE_DATA_DIR,
     FINETUNE_OUTPUT_DIR,
@@ -163,6 +163,10 @@ if __name__ == "__main__":
             proc = subprocess.Popen(cmd, stdout=log_file, stderr=log_file, start_new_session=True)
         follow(proc, log_path, "train")
     elif args.merge_only:
+        banner("MERGE — STARTING")
         merge(output_path)
+        banner("MERGE — DONE")
     else:
+        banner("TRAIN — STARTING")
         train_and_merge(data_path, output_path, args.resume)
+        banner("TRAIN — DONE")

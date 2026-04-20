@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
+from run_helper import banner
 from config import (
     BLOG_OUTPUT_DIR,
     FINETUNE_OUTPUT_DIR,
@@ -115,4 +116,6 @@ if __name__ == "__main__":
     blog_dir = args.blog_dir or BLOG_OUTPUT_DIR
     output_path = args.output or FINETUNE_OUTPUT_DIR
 
+    banner("PRETRAIN-TONE — STARTING")
     pretrain(blog_dir=blog_dir, output_path=output_path, resume=args.resume)
+    banner("PRETRAIN-TONE — DONE")
