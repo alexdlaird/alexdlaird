@@ -41,4 +41,46 @@ if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
 fi
 
+# Configure pi to use cortex RAG pipeline
+mkdir -p "$HOME/.pi/agent"
+cat > "$HOME/.pi/agent/models.json" << 'EOF'
+{
+  "providers": {
+    "cortex": {
+      "baseUrl": "http://cortex:9099/v1",
+      "api": "openai-completions",
+      "apiKey": "0p3n-w3bu!",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "cortex",
+          "name": "cortex",
+          "reasoning": true,
+          "input": ["text"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        }
+      ]
+    }
+  }
+}
+EOF
+# Set cortex as pi's default model (merge into existing settings if present)
+PI_SETTINGS="$HOME/.pi/agent/settings.json"
+if [[ -f "$PI_SETTINGS" ]]; then
+  tmp=$(mktemp)
+  python3 -c "
+import json, sys
+s = json.load(open('$PI_SETTINGS'))
+s['defaultProvider'] = 'cortex'
+s['defaultModel'] = 'cortex'
+json.dump(s, open('$tmp', 'w'), indent=2)
+"
+  mv "$tmp" "$PI_SETTINGS"
+else
+  echo '{"defaultProvider":"cortex","defaultModel":"cortex"}' > "$PI_SETTINGS"
+fi
+
 section_footer "brew setup"
