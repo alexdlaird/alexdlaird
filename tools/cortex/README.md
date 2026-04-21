@@ -84,14 +84,14 @@ FINETUNE_DATA_DIR   = Path.home() / "cortex-finetune" / "data"
 FINETUNE_OUTPUT_DIR = Path.home() / "cortex-finetune" / "output"
 BLOG_OUTPUT_DIR     = FINETUNE_DATA_DIR / "blog"
 
-BLOG_SITEMAP_URL = "https://example.com/post-sitemap.xml"
+BLOG_SITEMAP_URL = "https://www.example.com/sitemap.xml"
 SEED_DATA_PATHS  = []  # list of Path objects to seed .jsonl files
 
 SYSTEM_PROMPT = "You are a coding assistant ..."
 
 QDRANT_URL        = "http://localhost:6333"
 OLLAMA_BASE_URL   = "http://localhost:11434"
-COLLECTION_NAME   = "my-rag"
+COLLECTION_NAME   = "cortex"
 OLLAMA_CHAT_MODEL = "gemma4"
 
 # Requires accepting the license at huggingface.co/google/gemma-4-31B-it
