@@ -4,6 +4,7 @@ __license__ = "MIT"
 import unsloth  # noqa: F401 — must be imported before trl/transformers/peft
 
 import argparse
+import gc
 import logging
 import subprocess
 import sys
@@ -29,6 +30,25 @@ from config import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _clear_memory():
+    gc.collect()
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            if hasattr(torch.cuda, "ipc_collect"):
+                torch.cuda.ipc_collect()
+    except Exception as exc:  # pragma: no cover - best effort only
+        logger.debug(f"Skipping CUDA cleanup: {exc}")
+
+
+def _save_merged_model(model, tokenizer, merged_path):
+    logger.info(f"Merging adapter into full weights at {merged_path} ...")
+    model.save_pretrained_merged(str(merged_path), tokenizer, save_method="merged_16bit")
+    logger.info("Merge complete.")
 
 
 def load_model_and_tokenizer():
@@ -108,6 +128,7 @@ def train(data_path, output_path, resume):
     model.save_pretrained(str(adapter_path))
     tokenizer.save_pretrained(str(adapter_path))
     logger.info("Training complete.")
+    return model, tokenizer
 
 
 def merge(output_path):
@@ -116,20 +137,33 @@ def merge(output_path):
     adapter_path = output_path / "lora-adapter"
     merged_path = output_path / "merged"
 
-    logger.info(f"Merging adapter into full weights at {merged_path} ...")
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=str(adapter_path),
-        max_seq_length=MAX_SEQ_LENGTH,
-        dtype=None,
-        load_in_4bit=True,
-    )
-    model.save_pretrained_merged(str(merged_path), tokenizer, save_method="merged_16bit")
-    logger.info("Merge complete.")
+    _clear_memory()
+
+    model = None
+    tokenizer = None
+    try:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=str(adapter_path),
+            max_seq_length=MAX_SEQ_LENGTH,
+            dtype=None,
+            load_in_4bit=True,
+        )
+        _save_merged_model(model, tokenizer, merged_path)
+    finally:
+        del model
+        del tokenizer
+        _clear_memory()
 
 
 def train_and_merge(data_path, output_path, resume):
-    train(data_path, output_path, resume)
-    merge(output_path)
+    model, tokenizer = train(data_path, output_path, resume)
+    try:
+        _clear_memory()
+        _save_merged_model(model, tokenizer, output_path / "merged")
+    finally:
+        del model
+        del tokenizer
+        _clear_memory()
 
 
 if __name__ == "__main__":
