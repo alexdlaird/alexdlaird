@@ -41,15 +41,15 @@ if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
 fi
 
-# Configure pi to use cortex RAG pipeline
+# Configure pi to use the fine-tuned cortex model directly via Ollama
 mkdir -p "$HOME/.pi/agent"
 cat > "$HOME/.pi/agent/models.json" << 'EOF'
 {
   "providers": {
     "cortex": {
-      "baseUrl": "http://cortex:9099/v1",
+      "baseUrl": "http://cortex:11434/v1",
       "api": "openai-completions",
-      "apiKey": "0p3n-w3bu!",
+      "apiKey": "ollama",
       "compat": {
         "supportsDeveloperRole": false,
         "supportsReasoningEffort": false
