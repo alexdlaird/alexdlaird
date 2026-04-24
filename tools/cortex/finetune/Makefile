@@ -1,4 +1,4 @@
-.PHONY: all install nopyc clean pretrain-tone generate-data train export register unregister smoke-test
+.PHONY: all install nopyc clean pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
 
 LOG_DIR := logs
 
@@ -63,6 +63,12 @@ export: install
 		python $(TOOLS_CORTEX)/finetune/export.py --quant $(QUANT) --model-name $(MODEL_NAME); \
 	)
 
+setup-base-agent:
+	@# One-off bootstrap: create gemma4-agent overlay + cortex-agent alias.
+	@# Idempotent. Safe to re-run on an already-configured machine.
+	$(TOOLS_CORTEX)/bin/setup-base-agent
+	@$(MAKE) --no-print-directory probe
+
 unregister:
 	-@ollama rm $(MODEL_NAME) 2>/dev/null
 	-@ollama rm $(MODEL_NAME)-agent 2>/dev/null
@@ -83,6 +89,7 @@ register:
 	ollama create $(MODEL_NAME)-agent -f $$($(PROJECT_VENV)/bin/python -c \
 		"from config import FINETUNE_OUTPUT_DIR; print(FINETUNE_OUTPUT_DIR / 'gguf' / 'Modelfile.agent')")
 	@$(MAKE) --no-print-directory smoke-test
+	@$(MAKE) --no-print-directory probe
 	docker restart pipelines
 
 # Fails if the model doesn't terminate cleanly on a trivial prompt — the
@@ -101,3 +108,10 @@ smoke-test:
 		exit 1; \
 	fi; \
 	echo "--> smoke test passed (done_reason=stop)"
+
+# Tool-calling reliability probe against $(MODEL_NAME)-agent. Verifies the agent
+# overlay (gemma4-agent or real cortex-agent) emits structured tool_calls — the
+# failure mode we saw with temp=1.0 baked into the base Modelfile.
+probe:
+	@echo "--> probing $(MODEL_NAME)-agent for tool-calling reliability ..."
+	$(TOOLS_CORTEX)/tests/tool_call_probe.sh $(MODEL_NAME)-agent 10 http://localhost:11434

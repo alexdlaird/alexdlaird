@@ -63,8 +63,25 @@ make search QUERY="how does the auth middleware work"
 make search QUERY="database migration pattern" TOP_K=10
 ```
 
-Once indexed, Open WebUI at [http://localhost:3000](http://localhost:3000) connects to Ollama
-for interactive use as a coding assistant.
+## Models
+
+Each base (`gemma4` or the fine-tuned `cortex`) is registered twice in Ollama — once
+for chat, once for agent use:
+
+| Model          | Path  | Purpose                                          | Used by              |
+|----------------|-------|--------------------------------------------------|----------------------|
+| `gemma4`       | chat  | Google base, untouched                           | pipeline fallback    |
+| `cortex`       | chat  | Fine-tuned, baked with chat-oriented sampling    | pipeline preferred   |
+| `gemma4-agent` | agent | `FROM gemma4` + tool-calling params + agent prompt | pi/opencode fallback |
+| `cortex-agent` | agent | `FROM cortex` overlay (or alias to `gemma4-agent` pre-fine-tune) | pi/opencode preferred |
+
+- **Open WebUI** at [http://localhost:3000](http://localhost:3000) goes through the RAG
+  pipeline, which picks the best chat-path model available (`cortex` if registered,
+  else `gemma4`).
+- **CLI coding agents** (pi, opencode) point at `cortex-agent` directly — no RAG, since
+  they have filesystem and tool access of their own. When there's no fine-tune yet,
+  `cortex-agent` is an alias to `gemma4-agent`; `make register` after a fine-tune
+  replaces the alias with the real overlay. Clients never need to change targets.
 
 ## Fine-tuning
 
@@ -116,6 +133,11 @@ WARMUP_RATIO                = 0.05
 ### Usage
 
 ```bash
+# One-off bootstrap: register the gemma4-agent overlay on Ollama and alias
+# cortex-agent to it so pi/opencode work against the base model. Idempotent —
+# dev-init-ai runs this automatically, but it's safe to re-run on its own.
+make setup-base-agent
+
 # Fetch blog posts and run tone pre-training
 make pretrain-tone
 
@@ -125,9 +147,19 @@ make generate-data
 # Train the QLoRA adapter and merge into full weights
 make train
 
-# Export to GGUF and generate Modelfile
+# Export to GGUF and generate Modelfile (writes both Modelfile and Modelfile.agent)
 make export
 
-# Register the fine-tuned model with Ollama
+# Register the fine-tuned model with Ollama (creates both cortex and cortex-agent,
+# runs smoke-test against cortex and tool-calling probe against cortex-agent, then
+# restarts the pipelines container to pick up the new model)
 make register
+
+# Tool-calling reliability probe against cortex-agent (also run automatically as
+# part of `make register` and `make setup-base-agent`)
+make probe
 ```
+
+`make unregister` removes the fine-tuned `cortex` and `cortex-agent`, then re-aliases
+`cortex-agent` back to `gemma4-agent` so pi/opencode keep working against the base
+overlay.
