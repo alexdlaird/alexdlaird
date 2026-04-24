@@ -87,7 +87,8 @@ BLOG_OUTPUT_DIR     = FINETUNE_DATA_DIR / "blog"
 BLOG_SITEMAP_URL = "https://www.example.com/sitemap.xml"
 SEED_DATA_PATHS  = []  # list of Path objects to seed .jsonl files
 
-SYSTEM_PROMPT = "You are a coding assistant ..."
+TRAINING_SYSTEM_PROMPT = "You are a senior software engineering assistant ..."
+MODEL_SYSTEM_PROMPT = "You are a direct, technical coding assistant ..."
 
 QDRANT_URL        = "http://localhost:6333"
 OLLAMA_BASE_URL   = "http://localhost:11434"

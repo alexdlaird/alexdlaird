@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
-from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, SYSTEM_PROMPT
+from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, MODEL_SYSTEM_PROMPT
 from run_helper import banner, follow
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def export(adapter_path, output_path, quant, model_name):
     ).resolve()
 
     modelfile_path = output_path / "Modelfile"
-    modelfile_path.write_text(_build_modelfile(gguf_path, SYSTEM_PROMPT))
+    modelfile_path.write_text(_build_modelfile(gguf_path, MODEL_SYSTEM_PROMPT))
 
     logger.info(f"Modelfile written to {modelfile_path}")
     logger.info("")
