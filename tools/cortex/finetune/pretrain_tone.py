@@ -29,6 +29,8 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
+PRETRAIN_ADAPTER_DIRNAME = "lora-pretrain"
+
 
 def load_model_and_tokenizer():
     from unsloth import FastLanguageModel
@@ -67,7 +69,7 @@ def pretrain(blog_dir, output_path, resume):
     texts = [f.read_text(encoding="utf-8").strip() for f in txt_files]
     dataset = Dataset.from_dict({"text": texts})
 
-    adapter_path = output_path / "lora-pretrain"
+    adapter_path = output_path / PRETRAIN_ADAPTER_DIRNAME
     adapter_path.mkdir(parents=True, exist_ok=True)
 
     resume_from = str(adapter_path) if resume and any(adapter_path.iterdir()) else None
@@ -101,6 +103,10 @@ def pretrain(blog_dir, output_path, resume):
     logger.info(f"Saving pre-train LoRA adapter to {adapter_path}")
     model.save_pretrained(str(adapter_path))
     tokenizer.save_pretrained(str(adapter_path))
+    logger.info(
+        "Main fine-tuning will automatically start from this adapter on the next "
+        "train.py run unless --base-only is set."
+    )
     logger.info("Pre-training complete.")
 
 
@@ -109,7 +115,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Continued pre-training on blog posts for tone absorption.")
     parser.add_argument("--blog-dir", type=Path, default=None, help="Directory of .txt blog post files")
-    parser.add_argument("--output", type=Path, default=None, help="Output directory for pre-train adapter")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output root directory. The pre-train adapter is saved to OUTPUT/lora-pretrain for train.py to consume.",
+    )
     parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint")
     args = parser.parse_args()
 

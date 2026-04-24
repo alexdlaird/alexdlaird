@@ -31,6 +31,8 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
+PRETRAIN_ADAPTER_DIRNAME = "lora-pretrain"
+
 
 def _clear_memory():
     gc.collect()
@@ -51,35 +53,69 @@ def _save_merged_model(model, tokenizer, merged_path):
     logger.info("Merge complete.")
 
 
-def load_model_and_tokenizer():
+def _has_saved_artifacts(path: Path | None) -> bool:
+    return bool(path and path.exists() and path.is_dir() and any(path.iterdir()))
+
+
+def resolve_pretrain_adapter_path(output_path, pretrain_adapter_path=None, base_only=False):
+    if base_only:
+        return None
+
+    if pretrain_adapter_path is not None:
+        if not _has_saved_artifacts(pretrain_adapter_path):
+            raise FileNotFoundError(
+                f"Requested pre-train adapter does not exist or is empty: {pretrain_adapter_path}"
+            )
+        return pretrain_adapter_path
+
+    candidate = output_path / PRETRAIN_ADAPTER_DIRNAME
+    if _has_saved_artifacts(candidate):
+        return candidate
+
+    raise FileNotFoundError(
+        f"Missing required pre-train adapter: {candidate}. "
+        "Run pretrain_tone.py first or pass --base-only to skip tone pre-training."
+    )
+
+
+def load_model_and_tokenizer(pretrain_adapter_path=None):
     from unsloth import FastLanguageModel
 
+    model_name = str(pretrain_adapter_path) if pretrain_adapter_path else HF_MODEL_ID
+    logger.info(
+        f"Loading {'pre-train adapter' if pretrain_adapter_path else 'base model'}: {model_name}"
+    )
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=HF_MODEL_ID,
+        model_name=model_name,
         max_seq_length=MAX_SEQ_LENGTH,
         dtype=None,
         load_in_4bit=True,
     )
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=LORA_R,
-        target_modules=LORA_TARGET_MODULES,
-        lora_alpha=LORA_ALPHA,
-        lora_dropout=LORA_DROPOUT,
-        bias="none",
-        use_gradient_checkpointing="unsloth",
-        random_state=42,
-    )
+    if not pretrain_adapter_path:
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=LORA_R,
+            target_modules=LORA_TARGET_MODULES,
+            lora_alpha=LORA_ALPHA,
+            lora_dropout=LORA_DROPOUT,
+            bias="none",
+            use_gradient_checkpointing="unsloth",
+            random_state=42,
+        )
     return model, tokenizer
 
 
-def train(data_path, output_path, resume):
+def train(data_path, output_path, resume, pretrain_adapter_path=None, base_only=False):
     from datasets import load_dataset
     from trl import SFTTrainer, SFTConfig
     from unsloth.chat_templates import get_chat_template, standardize_sharegpt
 
-    logger.info(f"Loading model: {HF_MODEL_ID}")
-    model, tokenizer = load_model_and_tokenizer()
+    resolved_pretrain_adapter = resolve_pretrain_adapter_path(
+        output_path,
+        pretrain_adapter_path=pretrain_adapter_path,
+        base_only=base_only,
+    )
+    model, tokenizer = load_model_and_tokenizer(pretrain_adapter_path=resolved_pretrain_adapter)
     tokenizer = get_chat_template(tokenizer, chat_template="gemma")
 
     logger.info(f"Loading training data: {data_path}")
@@ -155,8 +191,14 @@ def merge(output_path):
         _clear_memory()
 
 
-def train_and_merge(data_path, output_path, resume):
-    model, tokenizer = train(data_path, output_path, resume)
+def train_and_merge(data_path, output_path, resume, pretrain_adapter_path=None, base_only=False):
+    model, tokenizer = train(
+        data_path,
+        output_path,
+        resume,
+        pretrain_adapter_path=pretrain_adapter_path,
+        base_only=base_only,
+    )
     try:
         _clear_memory()
         _save_merged_model(model, tokenizer, output_path / "merged")
@@ -173,6 +215,17 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=Path, default=None, help="Path to sharegpt.jsonl")
     parser.add_argument("--output", type=Path, default=None, help="Output directory for adapter")
     parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint")
+    parser.add_argument(
+        "--pretrain-adapter",
+        type=Path,
+        default=None,
+        help="LoRA adapter from pretrain_tone.py. Defaults to OUTPUT/lora-pretrain.",
+    )
+    parser.add_argument(
+        "--base-only",
+        action="store_true",
+        help="Ignore any pre-train adapter and fine-tune directly from the base model.",
+    )
     parser.add_argument("--merge-only", action="store_true", help="Skip training; merge existing adapter")
     parser.add_argument("--bg", action="store_true", help="Run in background after prompts (internal use)")
     args = parser.parse_args()
@@ -191,6 +244,10 @@ if __name__ == "__main__":
         ]
         if args.resume:
             cmd += ["--resume"]
+        if args.pretrain_adapter is not None:
+            cmd += ["--pretrain-adapter", str(args.pretrain_adapter)]
+        if args.base_only:
+            cmd += ["--base-only"]
         if args.merge_only:
             cmd += ["--merge-only"]
         with open(log_path, "w") as log_file:
@@ -202,5 +259,11 @@ if __name__ == "__main__":
         banner("MERGE — DONE")
     else:
         banner("TRAIN — STARTING")
-        train_and_merge(data_path, output_path, args.resume)
+        train_and_merge(
+            data_path,
+            output_path,
+            args.resume,
+            pretrain_adapter_path=args.pretrain_adapter,
+            base_only=args.base_only,
+        )
         banner("TRAIN — DONE")
