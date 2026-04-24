@@ -51,6 +51,12 @@ train: install
 		python $(TOOLS_CORTEX)/finetune/train.py; \
 	)
 
+train-merge: install
+	@( \
+		source $(PROJECT_VENV)/bin/activate; \
+		python $(TOOLS_CORTEX)/finetune/train.py --merge-only; \
+	)
+
 export: install
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
