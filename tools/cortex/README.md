@@ -26,7 +26,7 @@ QDRANT_URL = "http://localhost:6333"
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 EMBED_MODEL = "nomic-embed-text"
-COLLECTION_NAME = "my-rag"
+COLLECTION_NAME = "cortex"
 
 CODE_EXTENSIONS = [
     # Application code
