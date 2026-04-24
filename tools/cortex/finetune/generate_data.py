@@ -16,7 +16,15 @@ import requests
 from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-from config import COLLECTION_NAME, FINETUNE_DATA_DIR, OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, QDRANT_URL, SEED_DATA_PATHS, SYSTEM_PROMPT
+from config import (
+    COLLECTION_NAME,
+    FINETUNE_DATA_DIR,
+    OLLAMA_BASE_URL,
+    OLLAMA_CHAT_MODEL,
+    QDRANT_URL,
+    SEED_DATA_PATHS,
+    TRAINING_SYSTEM_PROMPT,
+)
 from run_helper import banner, follow
 
 logger = logging.getLogger(__name__)
@@ -74,7 +82,7 @@ def load_seed_pairs(seed_path):
 
 def inject_system_prompt(record):
     convs = [c for c in record.get("conversations", []) if c.get("from") != "system"]
-    return {"conversations": [{"from": "system", "value": SYSTEM_PROMPT}] + convs}
+    return {"conversations": [{"from": "system", "value": TRAINING_SYSTEM_PROMPT}] + convs}
 
 
 def _parse_json_response(content):
@@ -128,7 +136,7 @@ def generate_pair(chunk_text, ollama_base_url, model):
 
 def to_sharegpt(question, answer):
     return {"conversations": [
-        {"from": "system", "value": SYSTEM_PROMPT},
+        {"from": "system", "value": TRAINING_SYSTEM_PROMPT},
         {"from": "human", "value": question},
         {"from": "gpt", "value": answer},
     ]}
