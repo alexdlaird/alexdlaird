@@ -75,37 +75,9 @@ fi
 ollama pull gemma4
 ollama pull nomic-embed-text
 
-# Create gemma4-agent: derived model with sampling params tuned for coding-agent use
-# (tool-calling reliability benefits from low temperature + bounded sampling). Base gemma4
-# is left untouched so the raw Google pull remains available for experimentation.
-AGENT_PROMPT_FILE="$HOME/Developer/alexdlaird/tools/cortex/prompts/agent_system_prompt.txt"
-AGENT_MODELFILE=$(mktemp)
-{
-  cat <<'EOF'
-FROM gemma4
-PARAMETER temperature 0.2
-PARAMETER top_p 0.9
-PARAMETER top_k 40
-PARAMETER repeat_penalty 1.05
-PARAMETER num_predict 8192
-SYSTEM """
-EOF
-  cat "$AGENT_PROMPT_FILE"
-  echo '"""'
-} > "$AGENT_MODELFILE"
-ollama create gemma4-agent -f "$AGENT_MODELFILE"
-rm -f "$AGENT_MODELFILE"
-
-# Alias cortex-agent to gemma4-agent if the fine-tuned cortex-agent isn't registered
-# yet. After fine-tuning, `make register` runs `ollama create cortex-agent -f ...`
-# (FROM cortex + agent overlay) which overwrites this alias. Clients (pi/opencode) can
-# always request `cortex-agent` and get the best available — fine-tuned with agent
-# overlay when ready, agent-tuned base otherwise. The chat-facing `cortex` is left
-# unregistered until fine-tune completes; pipeline.py's _resolve_model() falls back
-# to plain `gemma4` in the meantime.
-if ! ollama list | awk 'NR>1 {print $1}' | grep -qE '^cortex-agent(:|$)'; then
-  ollama cp gemma4-agent cortex-agent
-fi
+# Create the gemma4-agent overlay + cortex-agent alias. See the script for details;
+# it's also callable standalone via `make setup-base-agent` for one-off bootstraps.
+"$HOME/Developer/alexdlaird/tools/cortex/bin/setup-base-agent"
 
 # Create shared Docker network for inter-container communication
 docker network create cortex 2>/dev/null || true

@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# One-off bootstrap for the base-agent overlay on Ollama.
+#
+# Creates `gemma4-agent` = FROM gemma4 + tool-calling sampling params + agent
+# system prompt. Then aliases `cortex-agent` to it if no real cortex-agent is
+# already registered. Idempotent — safe to re-run.
+#
+# After a fine-tune is exported and `make register` runs, the cortex-agent
+# alias is overwritten with the real `FROM cortex` overlay; this script's
+# cortex-agent step becomes a no-op and the base gemma4-agent is left alone.
+
+set -euo pipefail
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}" )" &> /dev/null && pwd )
+AGENT_PROMPT_FILE="$DIR/../prompts/agent_system_prompt.txt"
+
+if ! command -v ollama >/dev/null 2>&1; then
+  echo "error: ollama is not installed or not on PATH" >&2
+  exit 1
+fi
+
+if [[ ! -f "$AGENT_PROMPT_FILE" ]]; then
+  echo "error: agent prompt not found at $AGENT_PROMPT_FILE" >&2
+  exit 1
+fi
+
+if ! ollama list | awk 'NR>1 {print $1}' | grep -qE '^gemma4(:|$)'; then
+  echo "--> pulling gemma4 base model ..."
+  ollama pull gemma4
+fi
+
+echo "--> creating gemma4-agent overlay ..."
+AGENT_MODELFILE=$(mktemp)
+trap 'rm -f "$AGENT_MODELFILE"' EXIT
+{
+  cat <<'EOF'
+FROM gemma4
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.05
+PARAMETER num_predict 8192
+SYSTEM """
+EOF
+  cat "$AGENT_PROMPT_FILE"
+  echo '"""'
+} > "$AGENT_MODELFILE"
+ollama create gemma4-agent -f "$AGENT_MODELFILE"
+
+if ! ollama list | awk 'NR>1 {print $1}' | grep -qE '^cortex-agent(:|$)'; then
+  echo "--> aliasing cortex-agent -> gemma4-agent ..."
+  ollama cp gemma4-agent cortex-agent
+else
+  echo "--> cortex-agent already registered, leaving alone"
+fi
+
+echo
+echo "--> done. Current models:"
+ollama list
