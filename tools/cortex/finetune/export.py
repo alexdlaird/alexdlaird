@@ -34,17 +34,36 @@ TEMPLATE """{{- range $i, $_ := .Messages }}
 {{- end }}"""
 PARAMETER stop "<end_of_turn>"
 PARAMETER stop "<start_of_turn>"
-PARAMETER temperature 1.0
+PARAMETER temperature 0.7
 PARAMETER top_k 64
-PARAMETER top_p 0.95
+PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.0
 PARAMETER num_ctx 32768
+PARAMETER num_predict 8192
+'''
+
+# Agent overlay Modelfile — FROM the chat model, with tool-calling-friendly sampling
+# params and the agent system prompt baked in. Overrides the chat params inherited
+# from the base.
+AGENT_OVERLAY_TEMPLATE = '''FROM __BASE_MODEL__
+PARAMETER stop "<end_of_turn>"
+PARAMETER stop "<start_of_turn>"
+PARAMETER temperature 0.2
+PARAMETER top_k 40
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.05
+PARAMETER num_predict 8192
 '''
 
 
 def _build_modelfile(gguf_path, system_prompt):
     body = MODELFILE_TEMPLATE.replace("__GGUF_PATH__", str(gguf_path))
     return body.rstrip() + f'\n\nSYSTEM """{system_prompt}"""\n'
+
+
+def _build_agent_overlay(base_model, agent_prompt):
+    body = AGENT_OVERLAY_TEMPLATE.replace("__BASE_MODEL__", base_model)
+    return body.rstrip() + f'\n\nSYSTEM """{agent_prompt}"""\n'
 
 
 def export(adapter_path, output_path, quant, model_name):
@@ -91,10 +110,17 @@ def export(adapter_path, output_path, quant, model_name):
     modelfile_path = output_path / "Modelfile"
     modelfile_path.write_text(_build_modelfile(gguf_path, MODEL_SYSTEM_PROMPT))
 
+    agent_prompt_path = Path(__file__).parent.parent / "prompts" / "agent_system_prompt.txt"
+    agent_prompt = agent_prompt_path.read_text().strip()
+    agent_modelfile_path = output_path / "Modelfile.agent"
+    agent_modelfile_path.write_text(_build_agent_overlay(model_name, agent_prompt))
+
     logger.info(f"Modelfile written to {modelfile_path}")
+    logger.info(f"Agent overlay Modelfile written to {agent_modelfile_path}")
     logger.info("")
     logger.info("To register with Ollama, run:")
     logger.info(f"  ollama create {model_name} -f {modelfile_path}")
+    logger.info(f"  ollama create {model_name}-agent -f {agent_modelfile_path}")
 
 
 if __name__ == "__main__":

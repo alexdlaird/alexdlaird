@@ -58,15 +58,15 @@ cat > "$HOME/.pi/agent/models.json" << 'EOF'
       },
       "models": [
         {
-          "id": "cortex",
-          "name": "cortex",
+          "id": "cortex-agent",
+          "name": "cortex-agent",
           "reasoning": true,
           "input": ["text"],
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
         },
         {
-          "id": "gemma4",
-          "name": "gemma4",
+          "id": "gemma4-agent",
+          "name": "gemma4-agent",
           "reasoning": true,
           "input": ["text"],
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
@@ -84,12 +84,12 @@ if [[ -f "$PI_SETTINGS" ]]; then
 import json, sys
 s = json.load(open('$PI_SETTINGS'))
 s['defaultProvider'] = 'cortex'
-s['defaultModel'] = 'gemma4'
+s['defaultModel'] = 'cortex-agent'
 json.dump(s, open('$tmp', 'w'), indent=2)
 "
   mv "$tmp" "$PI_SETTINGS"
 else
-  echo '{"defaultProvider":"cortex","defaultModel":"gemma4"}' > "$PI_SETTINGS"
+  echo '{"defaultProvider":"cortex","defaultModel":"cortex-agent"}' > "$PI_SETTINGS"
 fi
 
 # Configure opencode the same way — direct to Ollama, both models declared.
@@ -105,11 +105,11 @@ cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
         "baseURL": "http://cortex:11434/v1"
       },
       "models": {
-        "cortex": {
-          "name": "cortex"
+        "cortex-agent": {
+          "name": "cortex-agent"
         },
-        "gemma4": {
-          "name": "gemma4"
+        "gemma4-agent": {
+          "name": "gemma4-agent"
         }
       }
     }
