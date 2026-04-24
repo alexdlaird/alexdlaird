@@ -3,6 +3,7 @@ __license__ = "MIT"
 
 import json
 import re
+from pathlib import Path
 from typing import Generator, Iterator, List, Union
 
 import requests
@@ -12,19 +13,11 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
-AGENT_SYSTEM_PROMPT = (
-    "You are cortex, a senior software engineering assistant for Alex Laird. "
-    "You may address him as Alex. "
-    "Default to direct, technical, implementation-focused help. "
-    "Prefer retrieved context, inspected evidence, and available tools over memory, especially for "
-    "repository state, runtime behavior, current outputs, and project-specific details. "
-    "When multiple independent tool or search steps are available, parallelize them when the environment supports it. "
-    "Do not claim to have inspected files, run commands, or observed results unless that information is actually provided. "
-    "Do not invent files, APIs, behaviors, or certainty. "
-    "If the answer is blocked by missing information that cannot be discovered directly, ask a concise clarifying question "
-    "instead of guessing. "
-    "Prefer concrete outputs: likely root cause, files or symbols to inspect, minimal change plan, and tests to run."
-)
+# Pipeline is the chat-facing path (Open WebUI). It uses a Q&A-oriented system prompt,
+# not the tool-aware agent prompt used by pi/opencode. dev-init-ai copies the prompts/
+# directory into the pipelines container alongside this file.
+_PROMPT_PATH = Path(__file__).parent / "prompts" / "chat_system_prompt.txt"
+CHAT_SYSTEM_PROMPT = _PROMPT_PATH.read_text().strip()
 
 
 class Pipeline:
@@ -36,7 +29,7 @@ class Pipeline:
         COLLECTION_NAME: str = "cortex"
         TOP_K: int = 5
         INCLUDE_TESTS: bool = False
-        SYSTEM_PROMPT: str = AGENT_SYSTEM_PROMPT
+        SYSTEM_PROMPT: str = CHAT_SYSTEM_PROMPT
 
     def __init__(self):
         self.id = "cortex"
@@ -56,8 +49,11 @@ class Pipeline:
         try:
             response = requests.get(f"{self.valves.OLLAMA_BASE_URL}/api/tags", timeout=5)
             models = [m["name"] for m in response.json().get("models", [])]
+            # Exact "cortex" or "cortex:TAG" — exclude derived names like "cortex-agent"
+            # which are the tool-calling overlay, not the chat-facing model.
             for m in models:
-                if m.split(":")[0] == "cortex":
+                base = m.split(":")[0]
+                if base == "cortex":
                     self._resolved_model = m
                     return self._resolved_model
         except Exception:

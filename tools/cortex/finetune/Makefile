@@ -65,14 +65,23 @@ export: install
 
 unregister:
 	-@ollama rm $(MODEL_NAME) 2>/dev/null
+	-@ollama rm $(MODEL_NAME)-agent 2>/dev/null
+	@# Re-alias the agent name back to the base overlay so pi/opencode keep
+	@# working with the same client config after the fine-tune is removed. The
+	@# chat-facing $(MODEL_NAME) stays absent; pipeline.py's _resolve_model()
+	@# falls back to plain gemma4 on the chat path.
+	ollama cp gemma4-agent $(MODEL_NAME)-agent
 	docker restart pipelines
 
 register:
 	@# Clear Ollama's cached manifest/blob digest for this model; otherwise
 	@# re-registering an overwritten GGUF trips "digest mismatch".
 	-@ollama rm $(MODEL_NAME) 2>/dev/null
+	-@ollama rm $(MODEL_NAME)-agent 2>/dev/null
 	ollama create $(MODEL_NAME) -f $$($(PROJECT_VENV)/bin/python -c \
 		"from config import FINETUNE_OUTPUT_DIR; print(FINETUNE_OUTPUT_DIR / 'gguf' / 'Modelfile')")
+	ollama create $(MODEL_NAME)-agent -f $$($(PROJECT_VENV)/bin/python -c \
+		"from config import FINETUNE_OUTPUT_DIR; print(FINETUNE_OUTPUT_DIR / 'gguf' / 'Modelfile.agent')")
 	@$(MAKE) --no-print-directory smoke-test
 	docker restart pipelines
 
