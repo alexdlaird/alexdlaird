@@ -41,7 +41,9 @@ if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
 fi
 
-# Configure pi to use the fine-tuned cortex model directly via Ollama
+# Configure pi to talk to Ollama directly (bypassing the RAG pipeline — pi has its own
+# filesystem/tool access). Both models are declared so the dev can switch manually between
+# the always-loaded base (gemma4) and the fine-tuned cortex model when it's loaded.
 mkdir -p "$HOME/.pi/agent"
 cat > "$HOME/.pi/agent/models.json" << 'EOF'
 {
@@ -61,13 +63,20 @@ cat > "$HOME/.pi/agent/models.json" << 'EOF'
           "reasoning": true,
           "input": ["text"],
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        },
+        {
+          "id": "gemma4",
+          "name": "gemma4",
+          "reasoning": true,
+          "input": ["text"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
         }
       ]
     }
   }
 }
 EOF
-# Set cortex as pi's default model (merge into existing settings if present)
+# Set gemma4 as pi's default (always loaded); dev can switch to cortex when it's loaded.
 PI_SETTINGS="$HOME/.pi/agent/settings.json"
 if [[ -f "$PI_SETTINGS" ]]; then
   tmp=$(mktemp)
@@ -75,12 +84,37 @@ if [[ -f "$PI_SETTINGS" ]]; then
 import json, sys
 s = json.load(open('$PI_SETTINGS'))
 s['defaultProvider'] = 'cortex'
-s['defaultModel'] = 'cortex'
+s['defaultModel'] = 'gemma4'
 json.dump(s, open('$tmp', 'w'), indent=2)
 "
   mv "$tmp" "$PI_SETTINGS"
 else
-  echo '{"defaultProvider":"cortex","defaultModel":"cortex"}' > "$PI_SETTINGS"
+  echo '{"defaultProvider":"cortex","defaultModel":"gemma4"}' > "$PI_SETTINGS"
 fi
+
+# Configure opencode the same way — direct to Ollama, both models declared.
+mkdir -p "$HOME/.config/opencode"
+cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "cortex": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Cortex",
+      "options": {
+        "baseURL": "http://cortex:11434/v1"
+      },
+      "models": {
+        "cortex": {
+          "name": "cortex"
+        },
+        "gemma4": {
+          "name": "gemma4"
+        }
+      }
+    }
+  }
+}
+EOF
 
 section_footer "brew setup"
