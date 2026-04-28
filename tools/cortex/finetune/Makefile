@@ -22,6 +22,9 @@ install: venv
 		CUDA_VER=$$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | tr -d '.'); \
 		pip install torch --index-url "https://download.pytorch.org/whl/cu$${CUDA_VER}"; \
 		pip install -r $(TOOLS_CORTEX)/finetune/requirements.txt; \
+		if [ -d $(HOME)/.unsloth/llama.cpp/gguf-py ]; then \
+			pip install --force-reinstall --no-deps $(HOME)/.unsloth/llama.cpp/gguf-py; \
+		fi; \
 	)
 
 nopyc:
