@@ -31,10 +31,9 @@ logger = logging.getLogger(__name__)
 
 GENERATION_PROMPT = (
     "You are a coding assistant named cortex. Given a code or documentation chunk, "
-    "generate ONE clear technical question a developer might ask about it, a concise "
-    "chain-of-thought reasoning process a developer would use to arrive at the answer, "
-    "and a thorough answer. Respond ONLY with valid JSON: "
-    "{\"question\": \"...\", \"thinking\": \"...\", \"answer\": \"...\"}"
+    "generate ONE clear technical question a developer might ask about it and a "
+    "thorough, direct answer. Respond ONLY with valid JSON: "
+    "{\"question\": \"...\", \"answer\": \"...\"}"
 )
 
 
@@ -123,10 +122,6 @@ def generate_pair(chunk_text, ollama_base_url, model):
         answer = pair.get("answer", "").strip()
         if not question or not answer:
             return None
-
-        thinking_text = pair.get("thinking", "").strip()
-        if thinking_text:
-            answer = f"<think>\n{thinking_text}\n</think>\n{answer}"
 
         return question, answer
     except Exception as e:
