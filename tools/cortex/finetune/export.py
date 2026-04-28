@@ -9,10 +9,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 
-from config import FINETUNE_OUTPUT_DIR, HF_MODEL_ID, MAX_SEQ_LENGTH, MODEL_SYSTEM_PROMPT
+from config import FINETUNE_OUTPUT_DIR, MODEL_SYSTEM_PROMPT
 from run_helper import banner, follow
 
 logger = logging.getLogger(__name__)
+
+# llama.cpp checkout that ships its own convert_hf_to_gguf.py + gguf-py + llama-quantize
+# binary, all from the same commit so they're internally consistent. Calling these
+# directly is the structural fix for unsloth_zoo's GGUF path, which downloads
+# convert_hf_to_gguf.py from llama.cpp master HEAD at runtime and breaks whenever
+# upstream adds an arch enum the locally-installed gguf doesn't yet expose.
+LLAMA_CPP_DIR = Path("~/.unsloth/llama.cpp").expanduser()
 
 # Explicit multi-turn Gemma chat template + sampling params. Stock gemma4 uses
 # `RENDERER gemma4` / `PARSER gemma4` directives that Ollama ties to the stock
@@ -66,46 +73,42 @@ def _build_agent_overlay(base_model, agent_prompt):
     return body.rstrip() + f'\n\nSYSTEM """{agent_prompt}"""\n'
 
 
+def _convert_hf_to_gguf(model_dir, outfile):
+    cmd = [
+        sys.executable, str(LLAMA_CPP_DIR / "convert_hf_to_gguf.py"),
+        str(model_dir), "--outfile", str(outfile), "--outtype", "bf16",
+    ]
+    logger.info(f"Running: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+
+def _quantize_gguf(infile, outfile, quant):
+    cmd = [str(LLAMA_CPP_DIR / "llama-quantize"), str(infile), str(outfile), quant]
+    logger.info(f"Running: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+
 def export(adapter_path, output_path, quant, model_name):
-    from unsloth import FastLanguageModel
-
-    logger.info(f"Loading adapter from {adapter_path} ...")
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=str(adapter_path),
-        max_seq_length=MAX_SEQ_LENGTH,
-        dtype=None,
-        load_in_4bit=True,
-    )
-
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Unsloth may ignore output_path and write to {adapter_name}_gguf/ alongside the adapter
-    unsloth_output = adapter_path.parent / (adapter_path.name + "_gguf")
-
     # Clear GGUFs from prior runs so the Modelfile's FROM always points at a
-    # freshly-hashed file. Without this, a stale file in one output dir can
-    # shadow a new file in the other, and Ollama later sees a digest mismatch.
-    for stale in list(output_path.glob("*.gguf")) + list(unsloth_output.glob("*.gguf")):
+    # freshly-hashed file. Without this, Ollama sees a digest mismatch.
+    for stale in output_path.glob("*.gguf"):
         logger.info(f"Removing stale GGUF: {stale}")
         stale.unlink()
 
-    logger.info(f"Exporting GGUF ({quant}) to {output_path} ...")
-    model.save_pretrained_gguf(str(output_path), tokenizer, quantization_method=quant)
+    bf16_path = output_path / f"{model_name}.bf16.gguf"
+    final_path = output_path / f"{model_name}.{quant.upper()}.gguf"
 
-    gguf_files = list(output_path.glob("*.gguf")) + list(unsloth_output.glob("*.gguf"))
-    if not gguf_files:
-        logger.error("No .gguf file found after export — check Unsloth output.")
-        return
+    logger.info(f"Converting {adapter_path} -> {bf16_path}")
+    _convert_hf_to_gguf(adapter_path, bf16_path)
 
-    # Exclude BF16 intermediates and vision projector (mmproj). For sharded
-    # models pick the primary shard (00001-of-N); fall back to any non-shard
-    # file; last resort: whatever is first.
-    candidates = [f for f in gguf_files if "BF16" not in f.name and "mmproj" not in f.name]
-    gguf_path = (
-        next((f for f in candidates if "00001-of" in f.name), None)
-        or next((f for f in candidates if "-of-" not in f.name), None)
-        or (candidates[0] if candidates else gguf_files[0])
-    ).resolve()
+    logger.info(f"Quantizing {bf16_path} -> {final_path} ({quant})")
+    _quantize_gguf(bf16_path, final_path, quant)
+
+    bf16_path.unlink()
+
+    gguf_path = final_path.resolve()
 
     modelfile_path = output_path / "Modelfile"
     modelfile_path.write_text(_build_modelfile(gguf_path, MODEL_SYSTEM_PROMPT))

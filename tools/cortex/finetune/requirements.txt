@@ -5,7 +5,10 @@ unsloth_zoo==2026.4.7
 trl==0.24.0
 datasets==4.3.0
 huggingface_hub==1.10.2
-gguf==0.18.0
+# gguf is intentionally NOT pinned here — PyPI gguf 0.18.0 and the in-tree
+# gguf-py 0.18.0 share a version string but ship different arch sets. The
+# Makefile's `install` target installs gguf from ~/.unsloth/llama.cpp/gguf-py
+# so it stays consistent with the bundled convert_hf_to_gguf.py.
 qdrant-client==1.17.1
 requests==2.33.1
 beautifulsoup4==4.14.3
