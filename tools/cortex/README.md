@@ -130,6 +130,22 @@ NUM_EPOCHS                  = 3
 WARMUP_RATIO                = 0.05
 ```
 
+### Prompts
+
+Three system prompts shape model behavior, each scoped to a different stage:
+
+| Prompt                    | Lives in                                | Used during                                                 |
+|---------------------------|-----------------------------------------|-------------------------------------------------------------|
+| `TRAINING_SYSTEM_PROMPT`  | private `config.py`                     | every fine-tune training example (synthetic + seed)         |
+| `MODEL_SYSTEM_PROMPT`     | private `config.py`                     | baked into the chat-model `Modelfile` (`cortex`)            |
+| `agent_system_prompt.txt` | this repo (`prompts/`)                  | baked into the agent overlay `Modelfile.agent` (`cortex-agent`) |
+
+The two `config.py` prompts are private because they may reference proprietary
+project context. The agent prompt lives here because it's tool-calling policy
+for the agent path, not personal context — it shapes whether the model emits
+structured `tool_calls` versus prose, and is the single biggest knob for
+agent reliability.
+
 ### Usage
 
 ```bash
