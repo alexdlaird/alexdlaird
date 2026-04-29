@@ -1,22 +1,26 @@
-.PHONY: all install nopyc clean pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
+.PHONY: all pull install nopyc clean pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
 
 LOG_DIR := logs
 
 SHELL := /usr/bin/env bash
-PYTHON_BIN    ?= python
-PROJECT_VENV  ?= venv
-TOOLS_CORTEX  ?= $(HOME)/Developer/alexdlaird/tools/cortex
-QUANT         ?= q4_k_m
-MODEL_NAME    ?= cortex
-INCLUDE_TESTS ?= false
+PYTHON_BIN     ?= python
+PROJECT_VENV   ?= venv
+ALEXDLAIRD_DIR ?= $(HOME)/Developer/alexdlaird
+TOOLS_CORTEX   ?= $(ALEXDLAIRD_DIR)/tools/cortex
+QUANT          ?= q4_k_m
+MODEL_NAME     ?= cortex
+INCLUDE_TESTS  ?= false
 
 all: install
+
+pull:
+	@git -C $(ALEXDLAIRD_DIR) pull --ff-only
 
 venv:
 	$(PYTHON_BIN) -m pip install virtualenv --user
 	$(PYTHON_BIN) -m virtualenv $(PROJECT_VENV)
 
-install: venv
+install: pull venv
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		CUDA_VER=$$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | tr -d '.'); \
@@ -66,7 +70,7 @@ export: install
 		python $(TOOLS_CORTEX)/finetune/export.py --quant $(QUANT) --model-name $(MODEL_NAME); \
 	)
 
-setup-base-agent:
+setup-base-agent: pull
 	@# One-off bootstrap: create gemma4-agent overlay + cortex-agent alias.
 	@# Idempotent. Safe to re-run on an already-configured machine.
 	$(TOOLS_CORTEX)/bin/setup-base-agent
@@ -115,6 +119,6 @@ smoke-test:
 # Tool-calling reliability probe against $(MODEL_NAME)-agent. Verifies the agent
 # overlay (gemma4-agent or real cortex-agent) emits structured tool_calls — the
 # failure mode we saw with temp=1.0 baked into the base Modelfile.
-probe:
+probe: pull
 	@echo "--> probing $(MODEL_NAME)-agent for tool-calling reliability ..."
 	$(TOOLS_CORTEX)/tests/tool_call_probe.sh $(MODEL_NAME)-agent 10 http://localhost:11434
