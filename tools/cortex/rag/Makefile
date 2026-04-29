@@ -4,6 +4,7 @@ SHELL := /usr/bin/env bash
 PYTHON_BIN ?= python
 PROJECT_VENV ?= venv
 ALEXDLAIRD_DIR ?= $(HOME)/Developer/alexdlaird
+PRIVATE_DEV_DIR ?= $(HOME)/Developer/private-dev
 TOOLS_CORTEX ?= $(ALEXDLAIRD_DIR)/tools/cortex
 TOP_K ?= 5
 INCLUDE_TESTS ?= false
@@ -12,6 +13,7 @@ all: install
 
 pull:
 	@git -C $(ALEXDLAIRD_DIR) pull --ff-only
+	@git -C $(PRIVATE_DEV_DIR) pull --ff-only
 
 venv:
 	$(PYTHON_BIN) -m pip install virtualenv --user

@@ -5,6 +5,7 @@ import unsloth  # noqa: F401 — must be imported before trl/transformers/peft
 
 import argparse
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -12,7 +13,6 @@ sys.path.insert(0, str(Path.cwd()))
 
 from run_helper import banner
 from config import (
-    BLOG_OUTPUT_DIR,
     FINETUNE_OUTPUT_DIR,
     GRADIENT_ACCUMULATION_STEPS,
     HF_MODEL_ID,
@@ -30,6 +30,8 @@ from config import (
 logger = logging.getLogger(__name__)
 
 PRETRAIN_ADAPTER_DIRNAME = "lora-pretrain"
+BLOG_SOURCE_DIR = Path.home() / "Developer" / "alexdlaird.github.io" / "content" / "posts"
+FRONTMATTER_RE = re.compile(r"^---\n.*?\n---\n", re.DOTALL)
 
 
 def load_model_and_tokenizer():
@@ -58,15 +60,18 @@ def pretrain(blog_dir, output_path, resume):
     from datasets import Dataset
     from trl import SFTTrainer, SFTConfig
 
-    txt_files = sorted(blog_dir.glob("*.txt"))
-    if not txt_files:
-        raise FileNotFoundError(f"No .txt files found in {blog_dir} — run fetch-blog first")
+    md_files = sorted(blog_dir.glob("*.md"))
+    if not md_files:
+        raise FileNotFoundError(
+            f"No .md files found in {blog_dir} — ensure alexdlaird.github.io is cloned at "
+            f"~/Developer/alexdlaird.github.io"
+        )
 
     logger.info(f"Loading model: {HF_MODEL_ID}")
     model, tokenizer = load_model_and_tokenizer()
 
-    logger.info(f"Loading {len(txt_files)} blog posts from {blog_dir}")
-    texts = [f.read_text(encoding="utf-8").strip() for f in txt_files]
+    logger.info(f"Loading {len(md_files)} blog posts from {blog_dir}")
+    texts = [FRONTMATTER_RE.sub("", f.read_text(encoding="utf-8"), count=1).strip() for f in md_files]
     dataset = Dataset.from_dict({"text": texts})
 
     adapter_path = output_path / PRETRAIN_ADAPTER_DIRNAME
@@ -114,7 +119,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     parser = argparse.ArgumentParser(description="Continued pre-training on blog posts for tone absorption.")
-    parser.add_argument("--blog-dir", type=Path, default=None, help="Directory of .txt blog post files")
+    parser.add_argument("--blog-dir", type=Path, default=None, help="Directory of Hugo .md blog posts")
     parser.add_argument(
         "--output",
         type=Path,
@@ -124,7 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint")
     args = parser.parse_args()
 
-    blog_dir = args.blog_dir or BLOG_OUTPUT_DIR
+    blog_dir = args.blog_dir or BLOG_SOURCE_DIR
     output_path = args.output or FINETUNE_OUTPUT_DIR
 
     banner("PRETRAIN-TONE — STARTING")

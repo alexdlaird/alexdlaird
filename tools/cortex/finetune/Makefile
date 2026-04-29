@@ -1,20 +1,25 @@
-.PHONY: all pull install nopyc clean pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
+.PHONY: all pull pull-blog install nopyc clean pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
 
 LOG_DIR := logs
 
 SHELL := /usr/bin/env bash
-PYTHON_BIN     ?= python
-PROJECT_VENV   ?= venv
-ALEXDLAIRD_DIR ?= $(HOME)/Developer/alexdlaird
-TOOLS_CORTEX   ?= $(ALEXDLAIRD_DIR)/tools/cortex
-QUANT          ?= q4_k_m
-MODEL_NAME     ?= cortex
-INCLUDE_TESTS  ?= false
+PYTHON_BIN      ?= python
+PROJECT_VENV    ?= venv
+ALEXDLAIRD_DIR  ?= $(HOME)/Developer/alexdlaird
+PRIVATE_DEV_DIR ?= $(HOME)/Developer/private-dev
+TOOLS_CORTEX    ?= $(ALEXDLAIRD_DIR)/tools/cortex
+QUANT           ?= q4_k_m
+MODEL_NAME      ?= cortex
+INCLUDE_TESTS   ?= false
 
 all: install
 
 pull:
 	@git -C $(ALEXDLAIRD_DIR) pull --ff-only
+	@git -C $(PRIVATE_DEV_DIR) pull --ff-only
+
+pull-blog:
+	@git -C $(HOME)/Developer/alexdlaird.github.io pull --ff-only
 
 venv:
 	$(PYTHON_BIN) -m pip install virtualenv --user
@@ -38,10 +43,9 @@ nopyc:
 clean: nopyc
 	rm -rf $(PROJECT_VENV)
 
-pretrain-tone: install
+pretrain-tone: install pull-blog
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/fetch_blog.py; \
 		python $(TOOLS_CORTEX)/finetune/pretrain_tone.py; \
 	)
 
