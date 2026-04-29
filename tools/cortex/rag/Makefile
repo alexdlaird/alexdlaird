@@ -1,19 +1,23 @@
-.PHONY: all install nopyc clean ingest search refresh restart
+.PHONY: all pull install nopyc clean ingest search refresh restart
 
 SHELL := /usr/bin/env bash
 PYTHON_BIN ?= python
 PROJECT_VENV ?= venv
-TOOLS_CORTEX ?= $(HOME)/Developer/alexdlaird/tools/cortex
+ALEXDLAIRD_DIR ?= $(HOME)/Developer/alexdlaird
+TOOLS_CORTEX ?= $(ALEXDLAIRD_DIR)/tools/cortex
 TOP_K ?= 5
 INCLUDE_TESTS ?= false
 
 all: install
 
+pull:
+	@git -C $(ALEXDLAIRD_DIR) pull --ff-only
+
 venv:
 	$(PYTHON_BIN) -m pip install virtualenv --user
 	$(PYTHON_BIN) -m virtualenv $(PROJECT_VENV)
 
-install: venv
+install: pull venv
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
 		pip install -r $(TOOLS_CORTEX)/rag/requirements.txt; \
@@ -39,7 +43,7 @@ search: install
 		python $(TOOLS_CORTEX)/query/search.py --top-k $(TOP_K) $(if $(filter true,$(INCLUDE_TESTS)),--include-tests,) "$(QUERY)"; \
 	)
 
-refresh:
+refresh: pull
 	docker cp $(TOOLS_CORTEX)/pipeline/pipeline.py pipelines:/app/pipelines/pipeline.py
 	docker exec pipelines rm -f /app/pipelines/pipeline/valves.json
 	docker restart pipelines
