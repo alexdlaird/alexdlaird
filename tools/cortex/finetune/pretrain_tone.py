@@ -60,7 +60,7 @@ def pretrain(blog_dir, output_path, resume):
     from datasets import Dataset
     from trl import SFTTrainer, SFTConfig
 
-    md_files = sorted(blog_dir.glob("*.md"))
+    md_files = sorted(p for p in blog_dir.glob("*.md") if not p.name.startswith("_"))
     if not md_files:
         raise FileNotFoundError(
             f"No .md files found in {blog_dir} — ensure alexdlaird.github.io is cloned at "
@@ -70,8 +70,9 @@ def pretrain(blog_dir, output_path, resume):
     logger.info(f"Loading model: {HF_MODEL_ID}")
     model, tokenizer = load_model_and_tokenizer()
 
-    logger.info(f"Loading {len(md_files)} blog posts from {blog_dir}")
     texts = [FRONTMATTER_RE.sub("", f.read_text(encoding="utf-8"), count=1).strip() for f in md_files]
+    texts = [t for t in texts if t]
+    logger.info(f"Loaded {len(texts)} blog posts from {blog_dir}")
     dataset = Dataset.from_dict({"text": texts})
 
     adapter_path = output_path / PRETRAIN_ADAPTER_DIRNAME
