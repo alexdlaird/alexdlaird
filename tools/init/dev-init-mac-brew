@@ -117,4 +117,7 @@ cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
 }
 EOF
 
+# Symlink the public cortex engine into private-dev for quick navigation
+ln -snf "$HOME/Developer/alexdlaird/tools/cortex" "$HOME/Developer/private-dev/servers/cortex/engine"
+
 section_footer "brew setup"
