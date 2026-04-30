@@ -93,10 +93,7 @@ if [ ! -d "$HOME/.autoenv" ]; then
   wget --show-progress -o /dev/null -O- 'https://raw.githubusercontent.com/hyperupcall/autoenv/master/scripts/install.sh' | sh
 fi
 
-if ! command -v nvm 2>&1 >/dev/null; then
-  # Install nvm
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-fi
+. "$DIR/dev-init-nvm"
 
 if ! command -v dart 2>&1 >/dev/null; then
   # Install Dart SDK (for fvm)

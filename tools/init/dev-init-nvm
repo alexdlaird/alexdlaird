@@ -1,16 +1,38 @@
 #!/usr/bin/env zsh
 
-DIR="$( dirname "$0" )"
-. "$DIR/../lib/init-helpers.sh"
-. "$HOME/.zshrc"
+INIT_NVM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$INIT_NVM_DIR/../lib/init-helpers.sh"
 
 section_header "Initializing nvm/Node"
 
-block-manager "$DIR/../lib/rc-nvm.sh" "$HOME/.zshrc" "nvm"
-. "$DIR/../lib/rc-nvm.sh"
+# Install nvm via curl on Linux if missing (Mac gets it via brew in dev-init-mac-brew)
+if [[ "$(uname -s)" != "Darwin" ]] && [[ ! -f "$HOME/.nvm/nvm.sh" ]]; then
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+fi
 
-# Install Node versions (skip if already installed)
-nvm ls 20 2>/dev/null | grep -q "v20" || nvm install 20
-nvm ls 22 2>/dev/null | grep -q "v22" || nvm install 22
+# Locate nvm.sh per-OS
+if [[ "$(uname -s)" == "Darwin" ]] && command -v brew >/dev/null 2>&1; then
+  NVM_SH="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
+else
+  NVM_SH="$HOME/.nvm/nvm.sh"
+fi
+
+if [[ ! -f "$NVM_SH" ]]; then
+  echo "!!> nvm.sh not found at $NVM_SH"
+  return 1 2>/dev/null || exit 1
+fi
+
+# Provision the rc block for future zsh shells
+"$INIT_NVM_DIR/../bin/block-manager" "$INIT_NVM_DIR/../lib/rc-nvm.sh" "$HOME/.zshrc" "nvm"
+
+# Activate nvm in the current shell
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+mkdir -p "$NVM_DIR"
+. "$NVM_SH"
+
+# Install Node 24 (skip if already installed), activate it, set as default
+nvm ls 24 2>/dev/null | grep -q "v24" || nvm install 24
+nvm use 24 >/dev/null
+nvm alias default 24
 
 section_footer "nvm/Node setup"
