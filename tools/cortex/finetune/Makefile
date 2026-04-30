@@ -1,4 +1,4 @@
-.PHONY: all pull pull-blog install nopyc clean ingest pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
+.PHONY: all pull pull-blog install nopyc clean ingest pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent pipeline pipeline-bg
 
 LOG_DIR := logs
 
@@ -11,6 +11,9 @@ TOOLS_CORTEX    ?= $(ALEXDLAIRD_DIR)/tools/cortex
 QUANT           ?= q4_k_m
 MODEL_NAME      ?= cortex
 INCLUDE_TESTS   ?= false
+SAMPLE_EVERY    ?= 1
+LIMIT           ?= 0
+PIPELINE_SESSION ?= cortex-retrain
 
 all: install
 
@@ -56,7 +59,10 @@ generate-data: install
 	@mkdir -p $(LOG_DIR)
 	@( \
 		source $(PROJECT_VENV)/bin/activate; \
-		python $(TOOLS_CORTEX)/finetune/generate_data.py $(if $(filter true,$(INCLUDE_TESTS)),--include-tests,); \
+		python $(TOOLS_CORTEX)/finetune/generate_data.py \
+			--sample-every $(SAMPLE_EVERY) \
+			$(if $(filter-out 0,$(LIMIT)),--limit $(LIMIT),) \
+			$(if $(filter true,$(INCLUDE_TESTS)),--include-tests,); \
 	)
 
 train: install
@@ -129,3 +135,35 @@ smoke-test:
 probe: pull
 	@echo "--> probing $(MODEL_NAME)-agent for tool-calling reliability ..."
 	$(TOOLS_CORTEX)/tests/tool_call_probe.sh $(MODEL_NAME)-agent 10 http://localhost:11434
+
+# Full unattended retrain: ingest → pretrain-tone → generate-data → train → export → register.
+# Spawns a detached tmux session running pipeline-bg and tails the log. Ctrl-C
+# stops the tail; the tmux session keeps running. Reattach via:
+#   tmux attach -t $(PIPELINE_SESSION)
+# Override SAMPLE_EVERY for a faster validation pass: make pipeline SAMPLE_EVERY=10
+pipeline:
+	@mkdir -p $(LOG_DIR)
+	@if tmux has-session -t $(PIPELINE_SESSION) 2>/dev/null; then \
+		echo "--> tmux session '$(PIPELINE_SESSION)' already exists; tailing existing log."; \
+	else \
+		: > $(LOG_DIR)/pipeline.log; \
+		tmux new-session -d -s $(PIPELINE_SESSION) "$(MAKE) --no-print-directory pipeline-bg > $(LOG_DIR)/pipeline.log 2>&1"; \
+		echo "--> Started pipeline in detached tmux session '$(PIPELINE_SESSION)'."; \
+	fi
+	@echo "--> Tailing $(LOG_DIR)/pipeline.log (Ctrl-C to stop tailing; pipeline keeps running)."
+	@echo "--> Reattach later with: tmux attach -t $(PIPELINE_SESSION)"
+	@PANE_PID=$$(tmux list-panes -t $(PIPELINE_SESSION) -F "#{pane_pid}" 2>/dev/null | head -1); \
+	  exec tail -f $${PANE_PID:+--pid=$$PANE_PID} $(LOG_DIR)/pipeline.log
+
+# The actual chain. Halts on first failure. Ollama models are evicted between
+# Ollama-using and HuggingFace-using stages to avoid VRAM contention with the
+# 31B Gemma 4 load. Invoked inside the tmux session by `make pipeline`.
+pipeline-bg:
+	$(MAKE) --no-print-directory ingest
+	-@ollama stop nomic-embed-text 2>/dev/null
+	$(MAKE) --no-print-directory pretrain-tone
+	$(MAKE) --no-print-directory generate-data
+	-@ollama stop gemma4 2>/dev/null
+	$(MAKE) --no-print-directory train
+	$(MAKE) --no-print-directory export
+	$(MAKE) --no-print-directory register
