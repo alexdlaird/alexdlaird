@@ -77,8 +77,11 @@ fi
 #
 #   qwen  → coding agent path (fine-tuned into cortex / cortex-agent)
 #   gemma → general QA path (RAG-wrapped chat in Open WebUI)
+# Both pinned to explicit 27B tags so a fresh bootstrap can't silently regress
+# to a smaller :latest variant (Gemma 4's :latest is the 8B multimodal lite,
+# not the 27B flagship).
 QWEN_SOURCE_TAG="${QWEN_SOURCE_TAG:-qwen3.6:27b}"
-GEMMA_SOURCE_TAG="${GEMMA_SOURCE_TAG:-gemma4}"
+GEMMA_SOURCE_TAG="${GEMMA_SOURCE_TAG:-gemma4:27b}"
 
 _ollama_has() {
   local pat="${1//\./\\.}"
