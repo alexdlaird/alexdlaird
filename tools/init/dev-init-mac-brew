@@ -45,7 +45,7 @@ fi
 
 . "$DIR/init-pi-opencode.sh"
 
-# Symlink the public cortex engine into private-dev for quick navigation
-ln -snf "$HOME/Developer/cortex" "$HOME/Developer/private-dev/servers/cortex/engine"
+ln -snf "$HOME/Developer/cortex/finetune" "$HOME/Developer/private-dev/servers/cortex/finetune/engine"
+ln -snf "$HOME/Developer/cortex/rag" "$HOME/Developer/private-dev/servers/cortex/rag/engine"
 
 section_footer "brew setup"
