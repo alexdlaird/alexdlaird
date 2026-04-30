@@ -77,7 +77,7 @@ ollama pull nomic-embed-text
 
 # Create the gemma4-agent overlay + cortex-agent alias. See the script for details;
 # it's also callable standalone via `make setup-base-agent` for one-off bootstraps.
-"$HOME/Developer/alexdlaird/tools/cortex/bin/setup-base-agent"
+"$HOME/Developer/cortex/bin/setup-base-agent"
 
 # Create shared Docker network for inter-container communication
 docker network create cortex 2>/dev/null || true
@@ -97,7 +97,7 @@ else
 fi
 
 # Start pipelines server (RAG middleware between Open WebUI and Ollama)
-PIPELINE_DIR="$HOME/Developer/alexdlaird/tools/cortex/pipeline"
+PIPELINE_DIR="$HOME/Developer/cortex/pipeline"
 if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
   docker run -d \
     --name pipelines \
@@ -112,7 +112,7 @@ if ! docker ps -a --format '{{.Names}}' | grep -q '^pipelines$'; then
   until docker logs pipelines 2>&1 | grep -q "Application startup complete\|Uvicorn running"; do sleep 3; done
   docker cp "$PIPELINE_DIR/pipeline.py" pipelines:/app/pipelines/pipeline.py
   docker cp "$PIPELINE_DIR/requirements.txt" pipelines:/app/pipelines/requirements.txt
-  docker cp "$HOME/Developer/alexdlaird/tools/cortex/prompts" pipelines:/app/pipelines/prompts
+  docker cp "$HOME/Developer/cortex/prompts" pipelines:/app/pipelines/prompts
   docker update --restart unless-stopped pipelines
   docker restart pipelines
   echo "--> Waiting for pipelines to restart with pipeline loaded ..."
@@ -214,12 +214,12 @@ else
 fi
 
 # Provision RAG, fine-tuning, and pipeline dirs into private-dev
-TOOLS_CORTEX="$HOME/Developer/alexdlaird/tools/cortex"
+CORTEX_DIR="$HOME/Developer/cortex"
 PRIVATE_CORTEX="$HOME/Developer/private-dev/servers/cortex"
-ln -sf "$TOOLS_CORTEX/rag/Makefile" "$PRIVATE_CORTEX/rag/Makefile"
-ln -snf "$TOOLS_CORTEX/rag" "$PRIVATE_CORTEX/rag/engine"
-ln -sf "$TOOLS_CORTEX/finetune/Makefile" "$PRIVATE_CORTEX/finetune/Makefile"
-ln -snf "$TOOLS_CORTEX/finetune" "$PRIVATE_CORTEX/finetune/engine"
+ln -sf "$CORTEX_DIR/rag/Makefile" "$PRIVATE_CORTEX/rag/Makefile"
+ln -snf "$CORTEX_DIR/rag" "$PRIVATE_CORTEX/rag/engine"
+ln -sf "$CORTEX_DIR/finetune/Makefile" "$PRIVATE_CORTEX/finetune/Makefile"
+ln -snf "$CORTEX_DIR/finetune" "$PRIVATE_CORTEX/finetune/engine"
 mkdir -p "$PRIVATE_CORTEX/pipeline"
 
 # Install fine-tuning dependencies (Unsloth, HuggingFace)

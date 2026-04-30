@@ -106,6 +106,6 @@ if ! command -v dart 2>&1 >/dev/null; then
 fi
 
 # Symlink the public cortex engine into private-dev for quick navigation
-ln -snf "$HOME/Developer/alexdlaird/tools/cortex" "$HOME/Developer/private-dev/servers/cortex/engine"
+ln -snf "$HOME/Developer/cortex" "$HOME/Developer/private-dev/servers/cortex/engine"
 
 section_footer "Debian setup"
