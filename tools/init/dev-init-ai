@@ -216,9 +216,10 @@ fi
 # Provision RAG, fine-tuning, and pipeline dirs into private-dev
 TOOLS_CORTEX="$HOME/Developer/alexdlaird/tools/cortex"
 PRIVATE_CORTEX="$HOME/Developer/private-dev/servers/cortex"
-ln -snf "$TOOLS_CORTEX" "$PRIVATE_CORTEX/engine"
 ln -sf "$TOOLS_CORTEX/rag/Makefile" "$PRIVATE_CORTEX/rag/Makefile"
+ln -snf "$TOOLS_CORTEX/rag" "$PRIVATE_CORTEX/rag/engine"
 ln -sf "$TOOLS_CORTEX/finetune/Makefile" "$PRIVATE_CORTEX/finetune/Makefile"
+ln -snf "$TOOLS_CORTEX/finetune" "$PRIVATE_CORTEX/finetune/engine"
 mkdir -p "$PRIVATE_CORTEX/pipeline"
 
 # Install fine-tuning dependencies (Unsloth, HuggingFace)
