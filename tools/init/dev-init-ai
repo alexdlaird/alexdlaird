@@ -231,6 +231,19 @@ if ! python -c "import unsloth" 2>/dev/null; then
   pip install "unsloth" trl datasets huggingface_hub
 fi
 
+# Install pi and opencode coding agents (point at local Ollama; share the cortex/gemma4-agent config)
+. "$DIR/dev-init-nvm"
+
+if ! command -v pi >/dev/null 2>&1; then
+  curl -fsSL https://pi.dev/install.sh | bash
+fi
+
+if ! command -v opencode >/dev/null 2>&1; then
+  curl -fsSL https://opencode.ai/install | bash
+fi
+
+. "$DIR/init-pi-opencode.sh"
+
 # Prompt for HuggingFace login if not already authenticated
 if ! hf auth whoami 2>/dev/null; then
   echo ""

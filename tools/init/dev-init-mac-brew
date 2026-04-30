@@ -27,10 +27,12 @@ brew install zsh vim tmux hugo \
              docker docker-completion sqlite \
              ffmpeg bento4 gettext grep gnu-sed wget curl \
              openssl@3 ca-certificates gpg \
-             awscli awslogs gh twilio hashicorp/tap/terraform
+             awscli awslogs gh twilio hashicorp/tap/terraform \
              anomalyco/tap/opencode
 
 brew install --cask android-commandlinetools claude-code
+
+. "$DIR/dev-init-nvm"
 
 npm install -g @mariozechner/pi-coding-agent
 
@@ -41,81 +43,7 @@ if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
 fi
 
-# Configure pi to talk to Ollama directly (bypassing the RAG pipeline — pi has its own
-# filesystem/tool access). Both models are declared so the dev can switch manually between
-# the always-loaded base (gemma4) and the fine-tuned cortex model when it's loaded.
-mkdir -p "$HOME/.pi/agent"
-cat > "$HOME/.pi/agent/models.json" << 'EOF'
-{
-  "providers": {
-    "cortex": {
-      "baseUrl": "http://cortex:11434/v1",
-      "api": "openai-completions",
-      "apiKey": "ollama",
-      "compat": {
-        "supportsDeveloperRole": false,
-        "supportsReasoningEffort": false
-      },
-      "models": [
-        {
-          "id": "cortex-agent",
-          "name": "cortex-agent",
-          "reasoning": true,
-          "input": ["text"],
-          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
-        },
-        {
-          "id": "gemma4-agent",
-          "name": "gemma4-agent",
-          "reasoning": true,
-          "input": ["text"],
-          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
-        }
-      ]
-    }
-  }
-}
-EOF
-# Set gemma4 as pi's default (always loaded); dev can switch to cortex when it's loaded.
-PI_SETTINGS="$HOME/.pi/agent/settings.json"
-if [[ -f "$PI_SETTINGS" ]]; then
-  tmp=$(mktemp)
-  python3 -c "
-import json, sys
-s = json.load(open('$PI_SETTINGS'))
-s['defaultProvider'] = 'cortex'
-s['defaultModel'] = 'cortex-agent'
-json.dump(s, open('$tmp', 'w'), indent=2)
-"
-  mv "$tmp" "$PI_SETTINGS"
-else
-  echo '{"defaultProvider":"cortex","defaultModel":"cortex-agent"}' > "$PI_SETTINGS"
-fi
-
-# Configure opencode the same way — direct to Ollama, both models declared.
-mkdir -p "$HOME/.config/opencode"
-cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "cortex": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Cortex",
-      "options": {
-        "baseURL": "http://cortex:11434/v1"
-      },
-      "models": {
-        "cortex-agent": {
-          "name": "cortex-agent"
-        },
-        "gemma4-agent": {
-          "name": "gemma4-agent"
-        }
-      }
-    }
-  }
-}
-EOF
+. "$DIR/init-pi-opencode.sh"
 
 # Symlink the public cortex engine into private-dev for quick navigation
 ln -snf "$HOME/Developer/alexdlaird/tools/cortex" "$HOME/Developer/private-dev/servers/cortex/engine"
