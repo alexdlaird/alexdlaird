@@ -25,6 +25,7 @@ block-manager "$DIR/../lib/rc-editors.sh" "$HOME/.zshrc" "editors"
 # Install public SSH key
 mkdir -p "$HOME/.ssh"
 block-manager "$DIR/../lib/id_rsa.pub" "$HOME/.ssh/authorized_keys" "alexdlaird-pubkey"
+block-manager "$DIR/../lib/ssh_config" "$HOME/.ssh/config" "alexdlaird-ssh"
 
 # Initialize Git configs
 git config --global --replace-all core.excludesFile "$HOME/.gitignore_global"
