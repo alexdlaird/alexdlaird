@@ -30,9 +30,6 @@ cat > "$HOME/.pi/agent/models.json" << 'EOF'
   }
 }
 EOF
-# cortex-agent is always present (aliased to qwen-agent before the first
-# fine-tune, replaced by the real overlay after `make register`), so it's the
-# safe default. Dev can switch to qwen-agent to bypass the fine-tune layer.
 PI_SETTINGS="$HOME/.pi/agent/settings.json"
 if [[ -f "$PI_SETTINGS" ]]; then
   tmp=$(mktemp)
@@ -48,11 +45,11 @@ else
   echo '{"defaultProvider":"cortex","defaultModel":"cortex-agent"}' > "$PI_SETTINGS"
 fi
 
-# Configure opencode the same way — direct to Ollama, both models declared.
 mkdir -p "$HOME/.config/opencode"
 cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "cortex/cortex-agent",
   "provider": {
     "cortex": {
       "npm": "@ai-sdk/openai-compatible",
