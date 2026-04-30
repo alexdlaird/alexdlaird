@@ -19,8 +19,8 @@ cat > "$HOME/.pi/agent/models.json" << 'EOF'
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
         },
         {
-          "id": "gemma4-agent",
-          "name": "gemma4-agent",
+          "id": "qwen-agent",
+          "name": "qwen-agent",
           "reasoning": true,
           "input": ["text"],
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
@@ -30,7 +30,9 @@ cat > "$HOME/.pi/agent/models.json" << 'EOF'
   }
 }
 EOF
-# Set gemma4 as pi's default (always loaded); dev can switch to cortex when it's loaded.
+# cortex-agent is always present (aliased to qwen-agent before the first
+# fine-tune, replaced by the real overlay after `make register`), so it's the
+# safe default. Dev can switch to qwen-agent to bypass the fine-tune layer.
 PI_SETTINGS="$HOME/.pi/agent/settings.json"
 if [[ -f "$PI_SETTINGS" ]]; then
   tmp=$(mktemp)
@@ -62,8 +64,8 @@ cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
         "cortex-agent": {
           "name": "cortex-agent"
         },
-        "gemma4-agent": {
-          "name": "gemma4-agent"
+        "qwen-agent": {
+          "name": "qwen-agent"
         }
       }
     }

@@ -71,11 +71,43 @@ if [[ ! -f /etc/systemd/system/ollama.service.d/override.conf ]]; then
   sudo systemctl restart ollama
 fi
 
-# Pull models
-ollama pull gemma4
+# Pull base models and alias them to stable names. The aliases (qwen / gemma)
+# are what config.py, Makefile, pipeline.py, and setup-base-agent reference;
+# bump the source tags below when new versions ship.
+#
+#   qwen  → coding agent path (fine-tuned into cortex / cortex-agent)
+#   gemma → general QA path (RAG-wrapped chat in Open WebUI)
+QWEN_SOURCE_TAG="${QWEN_SOURCE_TAG:-qwen3.6:27b}"
+GEMMA_SOURCE_TAG="${GEMMA_SOURCE_TAG:-gemma4}"
+
+_ollama_has() {
+  local pat="${1//\./\\.}"
+  ollama list | awk 'NR>1 {print $1}' | grep -qE "^${pat}(:|$)"
+}
+
+_ensure_ollama_alias() {
+  local alias="$1" source="$2"
+  if _ollama_has "$alias"; then
+    return 0
+  fi
+  if ! _ollama_has "$source"; then
+    echo "--> pulling ${source} ..."
+    ollama pull "${source}"
+  fi
+  echo "--> aliasing ${source} -> ${alias} ..."
+  ollama cp "${source}" "${alias}"
+  ollama rm "${source}" 2>/dev/null || true
+}
+
+_ensure_ollama_alias qwen "$QWEN_SOURCE_TAG"
+_ensure_ollama_alias gemma "$GEMMA_SOURCE_TAG"
 ollama pull nomic-embed-text
 
-# Create the gemma4-agent overlay + cortex-agent alias. See the script for details;
+# Remove deprecated gemma4-agent overlay if present — replaced by qwen-agent
+# (created by setup-base-agent below) for the agent path.
+ollama rm gemma4-agent 2>/dev/null || true
+
+# Create the qwen-agent overlay + cortex-agent alias. See the script for details;
 # it's also callable standalone via `make setup-base-agent` for one-off bootstraps.
 "$HOME/Developer/cortex/bin/setup-base-agent"
 
@@ -231,7 +263,7 @@ if ! python -c "import unsloth" 2>/dev/null; then
   pip install "unsloth" trl datasets huggingface_hub
 fi
 
-# Install pi and opencode coding agents (point at local Ollama; share the cortex/gemma4-agent config)
+# Install pi and opencode coding agents (point at local Ollama; share the cortex-agent config)
 . "$DIR/dev-init-nvm"
 
 if ! command -v pi >/dev/null 2>&1; then
@@ -244,16 +276,18 @@ fi
 
 . "$DIR/init-pi-opencode.sh"
 
-# Prompt for HuggingFace login if not already authenticated
+# HuggingFace login is optional for the current setup — Qwen3.6-27B (the
+# fine-tune base) is Apache 2.0 and downloads anonymously. Login only matters
+# if you swap in a gated model later (e.g., a Gemma variant). Left in as a
+# convenience prompt for that case.
 if ! hf auth whoami 2>/dev/null; then
   echo ""
-  echo "!!> HuggingFace login required to download gated models (e.g. Gemma 4)."
-  echo "    Accept the model license at: https://huggingface.co/google/gemma-4-31B-it"
-  echo "    Then create a token at: https://huggingface.co/settings/tokens"
+  echo "!!> Optional: HuggingFace login. Required only for gated models."
+  echo "    Create a token at: https://huggingface.co/settings/tokens"
   if [[ "$INTERACTIVE" == "true" ]]; then
-    hf auth login
+    hf auth login || true
   else
-    echo "!!> Skipping HuggingFace login in unattended mode — run 'hf auth login' manually."
+    echo "!!> Skipping HuggingFace login in unattended mode — run 'hf auth login' manually if needed."
   fi
 fi
 
