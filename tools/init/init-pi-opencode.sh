@@ -31,19 +31,7 @@ cat > "$HOME/.pi/agent/models.json" << 'EOF'
 }
 EOF
 PI_SETTINGS="$HOME/.pi/agent/settings.json"
-if [[ -f "$PI_SETTINGS" ]]; then
-  tmp=$(mktemp)
-  python3 -c "
-import json, sys
-s = json.load(open('$PI_SETTINGS'))
-s['defaultProvider'] = 'cortex'
-s['defaultModel'] = 'cortex-agent'
-json.dump(s, open('$tmp', 'w'), indent=2)
-"
-  mv "$tmp" "$PI_SETTINGS"
-else
-  echo '{"defaultProvider":"cortex","defaultModel":"cortex-agent"}' > "$PI_SETTINGS"
-fi
+echo '{"defaultProvider":"cortex","defaultModel":"cortex-agent"}' > "$PI_SETTINGS"
 
 mkdir -p "$HOME/.config/opencode"
 cat > "$HOME/.config/opencode/opencode.json" << 'EOF'
