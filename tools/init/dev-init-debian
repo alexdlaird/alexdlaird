@@ -105,7 +105,7 @@ if ! command -v dart 2>&1 >/dev/null; then
   sudo apt-get install $APT_FLAGS dart
 fi
 
-# Symlink the public cortex engine into private-dev for quick navigation
-ln -snf "$HOME/Developer/cortex" "$HOME/Developer/private-dev/servers/cortex/engine"
+ln -snf "$HOME/Developer/cortex/finetune" "$HOME/Developer/private-dev/servers/cortex/finetune/engine"
+ln -snf "$HOME/Developer/cortex/rag" "$HOME/Developer/private-dev/servers/cortex/rag/engine"
 
 section_footer "Debian setup"
