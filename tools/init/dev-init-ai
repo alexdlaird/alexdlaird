@@ -66,11 +66,18 @@ if ! command -v ollama 2>&1 >/dev/null; then
   curl -fsSL https://ollama.com/install.sh | sh
 fi
 
-# Configure Ollama to listen on all interfaces (required for Docker containers)
+# Configure the Ollama daemon. OLLAMA_HOST opens it to Docker containers.
+# OLLAMA_KV_CACHE_TYPE=q4_0 quantizes KV cache so 256K context fits a 32GB
+# card alongside the Qwen 27B weights (fp16 KV at 256K doesn't fit). Flash
+# attention is required for KV-cache quantization to take effect.
 if [[ ! -f /etc/systemd/system/ollama.service.d/override.conf ]]; then
   sudo mkdir -p /etc/systemd/system/ollama.service.d
-  printf '[Service]\nEnvironment="OLLAMA_HOST=0.0.0.0"\n' \
-    | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null
+  sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null <<'EOF'
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+Environment="OLLAMA_FLASH_ATTENTION=1"
+Environment="OLLAMA_KV_CACHE_TYPE=q4_0"
+EOF
   sudo systemctl daemon-reload
   sudo systemctl restart ollama
 fi
