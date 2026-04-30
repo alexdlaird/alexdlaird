@@ -1,4 +1,4 @@
-.PHONY: all pull pull-blog install nopyc clean pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
+.PHONY: all pull pull-blog install nopyc clean ingest pretrain-tone generate-data train export register unregister smoke-test probe setup-base-agent
 
 LOG_DIR := logs
 
@@ -42,6 +42,9 @@ nopyc:
 
 clean: nopyc
 	rm -rf $(PROJECT_VENV)
+
+ingest:
+	@$(MAKE) --no-print-directory -C ../rag ingest
 
 pretrain-tone: install pull-blog
 	@( \
