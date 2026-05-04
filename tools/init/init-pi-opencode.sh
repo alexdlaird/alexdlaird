@@ -29,7 +29,7 @@ cat > "$HOME/.pi/agent/models.json" << EOF
           "reasoning": true,
           "input": ["text"],
           "contextWindow": 131072,
-          "maxTokens": 16384,
+          "maxTokens": 32768,
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
         },
         {
@@ -38,7 +38,7 @@ cat > "$HOME/.pi/agent/models.json" << EOF
           "reasoning": true,
           "input": ["text"],
           "contextWindow": 131072,
-          "maxTokens": 16384,
+          "maxTokens": 32768,
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
         }
       ]
@@ -61,7 +61,7 @@ cat > "$HOME/.pi/agent/models.json" << EOF
           "reasoning": true,
           "input": ["text"],
           "contextWindow": 131072,
-          "maxTokens": 16384,
+          "maxTokens": 32768,
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
         }
       ]
@@ -93,11 +93,11 @@ cat > "$HOME/.config/opencode/opencode.json" << EOF
       "models": {
         "cortex-agent": {
           "name": "cortex-agent",
-          "limit": { "context": 131072, "output": 16384 }
+          "limit": { "context": 131072, "output": 32768 }
         },
         "qwen-agent": {
           "name": "qwen-agent",
-          "limit": { "context": 131072, "output": 16384 }
+          "limit": { "context": 131072, "output": 32768 }
         }
       }
     },
@@ -113,7 +113,7 @@ cat > "$HOME/.config/opencode/opencode.json" << EOF
       "models": {
         "cortex-agent": {
           "name": "cortex-agent",
-          "limit": { "context": 131072, "output": 16384 }
+          "limit": { "context": 131072, "output": 32768 }
         }
       }
     }
