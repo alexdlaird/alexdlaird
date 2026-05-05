@@ -7,14 +7,36 @@
 #   --force:   Run all tasks regardless of last run time
 #   --verbose: Output to console instead of log file
 
-set -e
-
+# Removed 'set -e' to prevent fragile exits.
+# Task errors are already handled explicitly via if/else guards around each command,
+# so set -e only risks accidental aborts from benign non-zero returns.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/../env/refresh"
 LOCK_FILE="$LOG_DIR/.lock"
 LOG_FILE="$LOG_DIR/refresh.log"
+STALE_LOCK_AGE_MINUTES=15
 
+# Pre-flight: create log dir and break stale locks early
 mkdir -p "$LOG_DIR"
+
+# Break stale lock: if lock file exists but is older than cutoff, remove it immediately.
+# This prevents a hung/interrupted previous run from blocking all future runs.
+break_stale_lock() {
+  if [[ -f "$LOCK_FILE" ]]; then
+    local cutoff
+    cutoff=$(date -v-${STALE_LOCK_AGE_MINUTES}M +%s 2>/dev/null || echo 0)
+    local lock_mtime
+    lock_mtime=$(stat -f %m "$LOCK_FILE" 2>/dev/null || echo 0)
+    local now
+    now=$(date +%s)
+    if (( now - cutoff > 0 && lock_mtime < cutoff )); then
+      # Lock file is older than the cutoff — stale.
+      rm -f "$LOCK_FILE"
+    fi
+  fi
+}
+
+break_stale_lock
 
 # Task definitions: name|interval_seconds|command
 # Add new periodic tasks here
