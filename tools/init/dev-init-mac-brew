@@ -36,8 +36,6 @@ brew install --cask android-commandlinetools claude-code
 
 npm install -g @mariozechner/pi-coding-agent
 
-curl -fsSL https://ollama.com/install.sh | sh
-
 # Symlink autoenv (skip if already exists)
 if [[ ! -L "$HOME/.autoenv" ]]; then
   ln -s "$(brew --prefix autoenv)" "$HOME/.autoenv"
