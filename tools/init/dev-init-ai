@@ -21,6 +21,7 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'no
 # never via direct inbound — the upstream Arcadyan gateway blocks that anyway.
 sudo ufw allow from 192.168.86.0/22 to any port 22
 sudo ufw allow from 192.168.86.0/22 to any port 3000
+sudo ufw allow from 192.168.86.0/22 to any port 7860
 sudo ufw allow from 192.168.86.0/22 to any port 11434
 sudo ufw allow in on docker0 to any port 9099
 sudo ufw allow in on docker0 to any port 11434
@@ -193,7 +194,10 @@ if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
   if [[ ! -d "$FORGE_DIR" ]]; then
     sudo add-apt-repository ppa:deadsnakes/ppa -y
     sudo apt-get update
-    sudo apt-get install $APT_FLAGS git python3.10 python3.10-venv libgl1 libglib2.0-0
+    # libcairo2-dev is for pycairo (svglib build dep, used by the legacy
+    # controlnet preprocessor); not needed for FLUX, but cheap to install
+    # and silences a noisy install-time warning.
+    sudo apt-get install $APT_FLAGS git python3.10 python3.10-venv python3.10-dev libgl1 libglib2.0-0 libcairo2-dev
     git clone https://github.com/lllyasviel/stable-diffusion-webui-forge "$FORGE_DIR"
   fi
   if [[ ! -f "$FORGE_MODEL_DIR/$FORGE_MODEL" ]]; then
@@ -201,7 +205,23 @@ if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
     echo "--> Downloading FLUX.1 [dev] fp8 (~17GB) ..."
     wget -q --show-progress -O "$FORGE_MODEL_DIR/$FORGE_MODEL" "$FORGE_MODEL_URL"
   fi
+  # Pre-create the venv with a setuptools that still ships pkg_resources, and
+  # preinstall openai/CLIP with build isolation off. Forge inherits A1111's
+  # CLIP install (`pip install <github-zip>`) which builds from setup.py and
+  # imports pkg_resources — modern setuptools (>=70) makes that optional, so
+  # the default isolated build env doesn't have it and CLIP fails to install.
+  if [[ ! -d "$FORGE_DIR/venv" ]]; then
+    python3.10 -m venv "$FORGE_DIR/venv"
+    "$FORGE_DIR/venv/bin/pip" install wheel "setuptools==69.5.1"
+    CLIP_URL="https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip"
+    "$FORGE_DIR/venv/bin/pip" install --no-build-isolation "$CLIP_URL"
+    # joblib silences the soft_inpainting builtin extension's import-time error.
+    "$FORGE_DIR/venv/bin/pip" install joblib
+  fi
   if [[ ! -f /etc/systemd/system/forge.service ]]; then
+    # TORCH_COMMAND overrides Forge's default torch install (2.3.1+cu121),
+    # which predates Blackwell (RTX 5090, sm_120) support. cu128 wheels are
+    # the lowest line that ships sm_120 kernels.
     sudo tee /etc/systemd/system/forge.service > /dev/null <<EOF
 [Unit]
 Description=Stable Diffusion WebUI Forge (FLUX)
@@ -213,7 +233,9 @@ Type=simple
 User=$USER
 WorkingDirectory=$FORGE_DIR
 Environment="PYTHON_CMD=python3.10"
-ExecStart=$FORGE_DIR/webui.sh --api --listen --nowebui --skip-python-version-check
+Environment="TORCH_COMMAND=pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128"
+Environment="COMMANDLINE_ARGS=--always-offload-from-vram --api --listen --skip-python-version-check --port 7860"
+ExecStart=$FORGE_DIR/webui.sh
 Restart=on-failure
 RestartSec=10
 
