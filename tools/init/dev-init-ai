@@ -38,13 +38,18 @@ if [[ "$INTERACTIVE" != "true" ]]; then
   APT_FLAGS="-y"
 fi
 
-# Install NVIDIA driver (reboot required before continuing)
-if ! command -v nvidia-smi 2>&1 >/dev/null; then
+# Install/repair NVIDIA driver (reboot required before continuing). Uses
+# `nvidia-smi -L` rather than `command -v` so a half-broken state — binary
+# present, kernel module missing after a kernel upgrade — is detected as a
+# repair case, not a no-op.
+if ! nvidia-smi -L >/dev/null 2>&1; then
   sudo apt-get install $APT_FLAGS ubuntu-drivers-common
   sudo ubuntu-drivers install
-  if ! command -v nvidia-smi 2>&1 >/dev/null; then
+  if ! nvidia-smi -L >/dev/null 2>&1; then
     echo ""
-    echo "!!> NVIDIA driver installation failed. Check 'sudo ubuntu-drivers list' and install manually."
+    echo "!!> NVIDIA driver installation failed (or kernel modules not built for current kernel)."
+    echo "!!> Check 'sudo ubuntu-drivers list' and install manually, or try:"
+    echo "!!>   sudo apt install --reinstall linux-modules-nvidia-\$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | cut -d. -f1)-open-\$(uname -r)"
     return 0 2>/dev/null || exit 1
   fi
   echo ""
@@ -168,49 +173,47 @@ else
   echo "--> pipelines already exists, skipping (recreate manually if pipeline files changed)"
 fi
 
-# Install AUTOMATIC1111 (Stable Diffusion web UI for image generation)
+# Install Forge (lllyasviel/stable-diffusion-webui-forge — actively maintained
+# A1111 fork with first-class FLUX support). Open WebUI's automatic1111 engine
+# talks to Forge unchanged: the /sdapi/v1/* surface is identical.
 INSTALL_IMAGE_GEN=false
 if [[ "$INTERACTIVE" == "true" ]]; then
-  echo -n "Install image generation support (AUTOMATIC1111 + SDXL, ~6.9GB)? [y/N] "
+  echo -n "Install image generation support (Forge + FLUX.1 [dev] fp8, ~17GB)? [y/N] "
   read -r _img_reply
   [[ "$_img_reply" =~ ^[Yy] ]] && INSTALL_IMAGE_GEN=true
 fi
 if [[ "$INSTALL_IMAGE_GEN" == "true" ]]; then
-  SD_DIR="$HOME/stable-diffusion-webui"
-  SD_MODEL_DIR="$SD_DIR/models/Stable-diffusion"
-  SD_MODEL="sd_xl_base_1.0.safetensors"
-  SD_MODEL_URL="https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-  if [[ ! -d "$SD_DIR" ]]; then
+  FORGE_DIR="$HOME/stable-diffusion-webui-forge"
+  FORGE_MODEL_DIR="$FORGE_DIR/models/Stable-diffusion"
+  FORGE_MODEL="flux1-dev-fp8.safetensors"
+  # All-in-one fp8 checkpoint published by Forge's author. Non-gated (unlike
+  # black-forest-labs/FLUX.1-dev which requires HF login + license accept) and
+  # bakes in the VAE + text encoders so Forge loads it as a single file.
+  FORGE_MODEL_URL="https://huggingface.co/lllyasviel/flux1_dev/resolve/main/flux1-dev-fp8.safetensors"
+  if [[ ! -d "$FORGE_DIR" ]]; then
     sudo add-apt-repository ppa:deadsnakes/ppa -y
     sudo apt-get update
     sudo apt-get install $APT_FLAGS git python3.10 python3.10-venv libgl1 libglib2.0-0
-    git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui "$SD_DIR"
+    git clone https://github.com/lllyasviel/stable-diffusion-webui-forge "$FORGE_DIR"
   fi
-  if [[ ! -f "$SD_MODEL_DIR/$SD_MODEL" ]]; then
-    mkdir -p "$SD_MODEL_DIR"
-    echo "--> Downloading SDXL 1.0 model (~6.9GB) ..."
-    wget -q --show-progress -O "$SD_MODEL_DIR/$SD_MODEL" "$SD_MODEL_URL"
+  if [[ ! -f "$FORGE_MODEL_DIR/$FORGE_MODEL" ]]; then
+    mkdir -p "$FORGE_MODEL_DIR"
+    echo "--> Downloading FLUX.1 [dev] fp8 (~17GB) ..."
+    wget -q --show-progress -O "$FORGE_MODEL_DIR/$FORGE_MODEL" "$FORGE_MODEL_URL"
   fi
-  if [[ ! -d "$SD_DIR/venv" ]]; then
-    python3.10 -m venv "$SD_DIR/venv"
-    "$SD_DIR/venv/bin/pip" install wheel "setuptools==69.5.1"
-    CLIP_URL="https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip"
-    "$SD_DIR/venv/bin/pip" install --no-build-isolation "$CLIP_URL"
-  fi
-  if [[ ! -f /etc/systemd/system/sd-webui.service ]]; then
-    CUDA_VER=$(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+' | tr -d '.')
-    sudo tee /etc/systemd/system/sd-webui.service > /dev/null <<EOF
+  if [[ ! -f /etc/systemd/system/forge.service ]]; then
+    sudo tee /etc/systemd/system/forge.service > /dev/null <<EOF
 [Unit]
-Description=Stable Diffusion Web UI (AUTOMATIC1111)
-After=network.target
+Description=Stable Diffusion WebUI Forge (FLUX)
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$SD_DIR
+WorkingDirectory=$FORGE_DIR
 Environment="PYTHON_CMD=python3.10"
-Environment="TORCH_COMMAND=pip install torch==2.7.0+cu${CUDA_VER} torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_VER}"
-ExecStart=$SD_DIR/webui.sh --api --listen --nowebui --skip-python-version-check
+ExecStart=$FORGE_DIR/webui.sh --api --listen --nowebui --skip-python-version-check
 Restart=on-failure
 RestartSec=10
 
@@ -218,9 +221,9 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
     sudo systemctl daemon-reload
-    sudo systemctl enable sd-webui
-    sudo systemctl start sd-webui
-    echo "--> sd-webui service installed and started (first run will take several minutes to initialize)"
+    sudo systemctl enable forge
+    sudo systemctl start forge
+    echo "--> forge service installed and started (first run will take several minutes for venv + torch install)"
   fi
 fi
 
