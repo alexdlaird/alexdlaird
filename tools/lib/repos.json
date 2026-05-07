@@ -29,6 +29,7 @@
         "infra": "helium",
         "platform": "helium/projects/platform",
         "frontend": "helium/projects/frontend",
+        "www": "helium/projects/www",
         "frontend-legacy": "helium/projects/frontend-legacy",
         "cluster-tests": "helium/projects/cluster-tests"
     }
