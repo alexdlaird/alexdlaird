@@ -4,15 +4,15 @@ Hello 👋, and welcome! Here you will find the source code for many of my proje
 
 <table>
 <tr valign="middle">
-<td>🐍 <b><a href="https://github.com/alexdlaird/pyngrok">pyngrok</a></b> — Python wrapper for ngrok (also see <a href="https://github.com/alexdlaird/java-ngrok">java-ngrok</a>)</td>
+<td>🐍 <b><a href="https://github.com/alexdlaird/pyngrok">pyngrok</a></b> — A Python wrapper for ngrok; programmatic tunnels and webhook testing (also see <a href="https://github.com/alexdlaird/java-ngrok">java-ngrok</a>)</td>
 <td width="115"><a href="https://pepy.tech/project/pyngrok"><img src="https://static.pepy.tech/badge/pyngrok" alt="Downloads"></a></td>
 </tr>
 <tr valign="middle">
-<td>📅 <b><a href="https://github.com/HeliumEdu">Helium</a></b> — Open-source student planner I've been building since 2009 — color-coded classes, homework, grades, and notes, with a backend API, web & mobile app you can use, fork, or self-host</td>
+<td>📅 <b><a href="https://github.com/HeliumEdu">Helium</a></b> — A free, open-source student planner I've been developing since 2009 — color-coded classes & homework, track grades, take notes. Available as a backend API with web & mobile apps</td>
 <td width="115"><a href="https://app.heliumedu.com"><img src="https://img.shields.io/badge/Launch-App-4285F4?logo=googlechrome&logoColor=white" alt="Launch App"></a></td>
 </tr>
 <tr valign="middle">
-<td>📦 <b><a href="https://github.com/alexdlaird/amazon-orders">amazon-orders</a></b> — Python library and CLI for Amazon order history</td>
+<td>📦 <b><a href="https://github.com/alexdlaird/amazon-orders">amazon-orders</a></b> — A Python library (and CLI) for Amazon order history, line items, and transactions</td>
 <td width="115"><a href="https://pepy.tech/project/amazon-orders"><img src="https://static.pepy.tech/badge/amazon-orders" alt="Downloads"></a></td>
 </tr>
 </table>
