@@ -4,7 +4,7 @@ Hello 👋, and welcome! Here you will find the source code for many of my proje
 
 <table>
 <tr valign="middle">
-<td>🐍 <b><a href="https://github.com/alexdlaird/pyngrok">pyngrok</a></b> — A Python wrapper for ngrok; programmatic tunnels and webhook testing (also see <a href="https://github.com/alexdlaird/java-ngrok">java-ngrok</a>)</td>
+<td>🐍 <b><a href="https://github.com/alexdlaird/pyngrok">pyngrok</a></b> — A Python wrapper for ngrok; programmatic tunnels for ingress, webhooks, and APIs (also see <a href="https://github.com/alexdlaird/java-ngrok">java-ngrok</a>)</td>
 <td width="115"><a href="https://pepy.tech/project/pyngrok"><img src="https://static.pepy.tech/badge/pyngrok" alt="Downloads"></a></td>
 </tr>
 <tr valign="middle">
