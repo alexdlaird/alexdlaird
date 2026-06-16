@@ -23,8 +23,6 @@
         "twilio-taskrouter-demo": "twilio-taskrouter-demo"
     },
     "HeliumEdu": {
-        "template-project": "template-project",
-        "heliumcli": "heliumcli",
         ".github": "HeliumEdu-dot-github",
         "infra": "helium",
         "platform": "helium/projects/platform",
