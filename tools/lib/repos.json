@@ -20,7 +20,8 @@
         "pyngrok-example-flask": "pyngrok-example-flask",
         "private-dev": "private-dev",
         "cast-your-vote": "cast-your-vote",
-        "twilio-taskrouter-demo": "twilio-taskrouter-demo"
+        "twilio-taskrouter-demo": "twilio-taskrouter-demo",
+        "venus-direct": "venus-direct"
     },
     "HeliumEdu": {
         ".github": "HeliumEdu-dot-github",
