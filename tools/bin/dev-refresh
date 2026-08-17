@@ -42,6 +42,7 @@ break_stale_lock
 # Add new periodic tasks here
 TASKS=(
   "repos-pull|86400|$SCRIPT_DIR/dev-repos-pull"
+  "repos-link|86400|$SCRIPT_DIR/dev-repos-link"
 )
 
 VERBOSE=false

@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 
 from git import Repo
@@ -75,29 +76,7 @@ if os.path.exists(home_env_file):
     else:
         print(f"--> Overwriting {home_env_dest}")
 
-def symlink(source, dest):
-    print(f"--> Symlinking {dest} -> {source}")
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    if os.path.islink(dest) or os.path.exists(dest):
-        os.remove(dest)
-    os.symlink(source, dest)
-
-
-CLAUDE_DIR = os.path.join(DEVELOPER_DIR, "private-dev", "claude")
-
-if os.path.isdir(CLAUDE_DIR):
-    global_claude = os.path.join(CLAUDE_DIR, "CLAUDE.md")
-    if os.path.exists(global_claude):
-        symlink(global_claude, os.path.expanduser(os.path.join("~", ".claude", "CLAUDE.md")))
-
-    projects_dir = os.path.join(CLAUDE_DIR, "projects")
-    if os.path.isdir(projects_dir):
-        for filename in os.listdir(projects_dir):
-            if filename.endswith(".md"):
-                source = os.path.join(projects_dir, filename)
-                relative_path = filename[:-3].replace(".", os.sep)
-                dest = os.path.join(DEVELOPER_DIR, relative_path, ".claude", "CLAUDE.md")
-                symlink(source, dest)
+subprocess.run([os.path.join(os.path.dirname(os.path.realpath(__file__)), "dev-repos-link")], check=False)
 
 print("---------------------------------------------")
 print(" ... finished repos setup")
