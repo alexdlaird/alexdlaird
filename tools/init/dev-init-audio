@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}" )" &> /dev/null && pwd )
+
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing Audio Sink"
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo "!!> Audio sink setup is only supported on Linux"
+  return 0 2>/dev/null || exit 1
+fi
+
+PRIVATE_DEV="$HOME/Developer/private-dev"
+if [[ ! -d "$PRIVATE_DEV" ]]; then
+  echo "!!> $PRIVATE_DEV not found; clone private-dev before provisioning the audio sink."
+  return 0 2>/dev/null || exit 1
+fi
+
+# Set apt flags based on interactive mode
+APT_FLAGS=""
+if [[ "$INTERACTIVE" != "true" ]]; then
+  APT_FLAGS="-y"
+fi
+
+# Capture/serve dependencies. ffmpeg + alsa-utils also come from dev-init-debian;
+# netcat lets bin/stream wait for MediaMTX to be listening before it publishes.
+sudo apt-get install $APT_FLAGS ffmpeg alsa-utils netcat-openbsd
+sudo usermod -aG audio "$USER"
+
+# Firewall: LAN-only RTSP + SSH, everything else denied inbound. Off-LAN access
+# is via the outbound ngrok tunnel, not direct inbound.
+sudo ufw allow from 192.168.86.0/22 to any port 22
+sudo ufw allow from 192.168.86.0/22 to any port 8554 proto tcp
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+if ! sudo ufw status | grep -q "Status: active"; then
+  sudo ufw enable
+fi
+
+# MediaMTX is a downloaded release binary; its config is versioned in private-dev.
+mkdir -p "$HOME/mediamtx" "$HOME/recordings"
+if [[ ! -x "$HOME/mediamtx/mediamtx" ]]; then
+  MEDIAMTX_VER=$(curl -sL https://api.github.com/repos/bluenviron/mediamtx/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
+  curl -sL "https://github.com/bluenviron/mediamtx/releases/download/${MEDIAMTX_VER}/mediamtx_${MEDIAMTX_VER}_linux_amd64.tar.gz" | tar xz -C "$HOME/mediamtx" mediamtx
+fi
+
+# Install the core audio-sink services (unit files versioned in private-dev): the
+# MediaMTX RTSP server and the ffmpeg capture (FLAC archive + AAC publish).
+for unit in stream-mediamtx stream; do
+  sudo ln -snf "$PRIVATE_DEV/lib/${unit}.service" "/etc/systemd/system/${unit}.service"
+done
+sudo systemctl daemon-reload
+sudo systemctl enable --now stream-mediamtx.service stream.service
+
+# Off-LAN RTSP tunnel — only when a reserved ngrok address is configured. The
+# reserved address + authtoken live in ~/.env, never the repo.
+if [[ -f "$HOME/.env" ]] && grep -q '^STREAM_NGROK_ADDR=' "$HOME/.env"; then
+  if ! command -v ngrok >/dev/null 2>&1; then
+    sudo snap install ngrok
+  fi
+  sudo ln -snf "$PRIVATE_DEV/lib/stream-ngrok-tunnel.service" "/etc/systemd/system/stream-ngrok-tunnel.service"
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now stream-ngrok-tunnel.service
+else
+  echo "!!> STREAM_NGROK_ADDR not set in ~/.env; skipping off-LAN ngrok tunnel."
+  echo "!!> Add NGROK_AUTHTOKEN + STREAM_NGROK_ADDR to ~/.env and rerun to enable remote RTSP."
+fi
+
+echo "--> audio sink up: record -> ~/recordings (FLAC), listen -> rtsp://$(hostname):8554/audio"
+echo "--> set gain: raise ALSA capture (alsamixer / amixer) and the mic's own gain knob"
+echo "--> add the nightly prune to 'crontab -e' (see servers/ariel/README.md)"
+
+section_footer "Audio sink setup"
