@@ -81,6 +81,13 @@ if [[ "$OS_NAME" == "Linux" ]]; then
   fi
 fi
 
+# 10. Audio sink (MediaMTX) - Linux only
+if [[ "$OS_NAME" == "Linux" ]]; then
+  if confirm_n "Install audio sink environment (MediaMTX)?"; then
+    . "$DIR/dev-init-audio"
+  fi
+fi
+
 echo "============================================="
 echo " ... finished system setup"
 echo "============================================="
