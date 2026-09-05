@@ -67,22 +67,6 @@ else
   echo "!!> Add NGROK_AUTHTOKEN + STREAM_NGROK_ADDR to ~/.env and rerun to enable remote RTSP."
 fi
 
-if [[ -f "$HOME/.env" ]] && grep -q '^VENUS_WHIP_NGROK_ADDR=' "$HOME/.env" && grep -q '^VENUS_MEDIA_NGROK_ADDR=' "$HOME/.env"; then
-  if ! command -v ngrok >/dev/null 2>&1; then
-    sudo snap install ngrok
-  fi
-  mkdir -p "$HOME/recordings/venus"
-  sudo ufw allow from 192.168.86.0/22 to any port 8555 proto tcp
-  for unit in venus-stream venus-whip-ngrok-tunnel venus-media-ngrok-tunnel; do
-    sudo ln -snf "$PRIVATE_DEV/lib/${unit}.service" "/etc/systemd/system/${unit}.service"
-  done
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now venus-stream.service venus-whip-ngrok-tunnel.service venus-media-ngrok-tunnel.service
-  echo "--> Venus WHIP sink up: WHIP :8890, RTSP rtsp://$(hostname):8555/venus, records -> ~/recordings/venus"
-else
-  echo "!!> VENUS_*_NGROK_ADDR not set in ~/.env; skipping Venus WHIP sink."
-fi
-
 echo "--> audio sink up: record -> ~/recordings (FLAC), listen -> rtsp://$(hostname):8554/audio"
 echo "--> set gain: raise ALSA capture (alsamixer / amixer) and the mic's own gain knob"
 echo "--> add the nightly prune to 'crontab -e' (see servers/ariel/README.md)"
