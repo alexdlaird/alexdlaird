@@ -18,19 +18,16 @@ if ! id -nG | tr ' ' '\n' | grep -qx docker; then
 fi
 
 # Machine-specific settings live in ~/.env, never the repo:
-#   HA_PORT          port HA listens on (default 8123)
 #   HA_PACKAGES_DIR  optional directory of versioned YAML packages, mounted read-only
-HA_PORT=8123
 HA_PACKAGES_DIR=""
 if [[ -f "$HOME/.env" ]]; then
-  HA_PORT=$(grep -oP '^HA_PORT=\K.*' "$HOME/.env" || echo 8123)
   HA_PACKAGES_DIR=$(grep -oP '^HA_PACKAGES_DIR=\K.*' "$HOME/.env" || true)
 fi
 HA_CONFIG="$HOME/homeassistant"
 HA_TZ=$(timedatectl show -p Timezone --value 2>/dev/null || echo UTC)
 
 # Host networking means ufw governs access: LAN-only.
-sudo ufw allow from 192.168.86.0/22 to any port "$HA_PORT" proto tcp
+sudo ufw allow from 192.168.86.0/22 to any port 8123 proto tcp
 
 mkdir -p "$HA_CONFIG"
 
@@ -68,11 +65,6 @@ if [[ ! -f "$HA_CONFIG/configuration.yaml" ]]; then
       echo "  packages: !include_dir_named packages"
       echo
     fi
-    if [[ "$HA_PORT" != "8123" ]]; then
-      echo "http:"
-      echo "  server_port: $HA_PORT"
-      echo
-    fi
     echo "# Load frontend themes from the themes folder"
     echo "frontend:"
     echo "  themes: !include_dir_merge_named themes"
@@ -88,11 +80,14 @@ fi
 
 docker compose -f "$HA_CONFIG/compose.yaml" up -d
 
-echo "--> waiting for Home Assistant on :$HA_PORT ..."
+echo "--> waiting for Home Assistant on :8123 ..."
 for _ in $(seq 1 60); do
-  curl -s -o /dev/null "http://localhost:$HA_PORT/" && break
+  curl -s -o /dev/null "http://localhost:8123/" && break
   sleep 5
 done
+if ! curl -s -o /dev/null "http://localhost:8123/"; then
+  echo "!!> Home Assistant isn't answering on 8123; check nothing else owns that port."
+fi
 
 # HACS (community store): installed inside the container, then HA restarts to load it.
 if [[ ! -d "$HA_CONFIG/custom_components/hacs" ]] && confirm "Install HACS?"; then
@@ -100,7 +95,7 @@ if [[ ! -d "$HA_CONFIG/custom_components/hacs" ]] && confirm "Install HACS?"; th
   docker restart homeassistant
 fi
 
-echo "--> Home Assistant up: onboard at http://$(hostname):$HA_PORT"
+echo "--> Home Assistant up: onboard at http://$(hostname):8123"
 echo "--> then Settings > Devices & services > Add Integration > HACS (GitHub device login)"
 echo "--> update later: docker compose -f $HA_CONFIG/compose.yaml pull && docker compose -f $HA_CONFIG/compose.yaml up -d"
 
