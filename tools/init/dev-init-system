@@ -88,6 +88,13 @@ if [[ "$OS_NAME" == "Linux" ]]; then
   fi
 fi
 
+# 11. Home Assistant - Linux only
+if [[ "$OS_NAME" == "Linux" ]]; then
+  if confirm_n "Install Home Assistant?"; then
+    . "$DIR/dev-init-homeassistant"
+  fi
+fi
+
 echo "============================================="
 echo " ... finished system setup"
 echo "============================================="
