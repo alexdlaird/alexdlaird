@@ -30,7 +30,7 @@ sudo apt-get install $APT_FLAGS ffmpeg alsa-utils netcat-openbsd curl python3
 sudo usermod -aG audio "$USER"
 
 # Firewall: LAN-only RTSP + SSH, everything else denied inbound. Off-LAN access
-# is via the outbound ngrok tunnel, not direct inbound.
+# is via the OpenVPN, not a public tunnel or direct inbound.
 sudo ufw allow from 192.168.86.0/22 to any port 22
 sudo ufw allow from 192.168.86.0/22 to any port 8554 proto tcp
 sudo ufw default deny incoming
@@ -63,20 +63,6 @@ sudo systemctl enable --now stream-mediamtx.service stream.service stream-video.
 if [[ ! -f "$HOME/.env" ]] || ! grep -q '^CAMERA_VIEWER_PASS=' "$HOME/.env"; then
   echo "!!> CAMERA_VIEWER_PASS not set in ~/.env; the camera won't be pulled or recorded."
   echo "!!> Add it (see servers/ariel/README.md) and restart stream-mediamtx to enable video."
-fi
-
-# Off-LAN RTSP tunnel — only when a reserved ngrok address is configured. The
-# reserved address + authtoken live in ~/.env, never the repo.
-if [[ -f "$HOME/.env" ]] && grep -q '^STREAM_NGROK_ADDR=' "$HOME/.env"; then
-  if ! command -v ngrok >/dev/null 2>&1; then
-    sudo snap install ngrok
-  fi
-  sudo ln -snf "$PRIVATE_DEV/lib/stream-ngrok-tunnel.service" "/etc/systemd/system/stream-ngrok-tunnel.service"
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now stream-ngrok-tunnel.service
-else
-  echo "!!> STREAM_NGROK_ADDR not set in ~/.env; skipping off-LAN ngrok tunnel."
-  echo "!!> Add NGROK_AUTHTOKEN + STREAM_NGROK_ADDR to ~/.env and rerun to enable remote RTSP."
 fi
 
 echo "--> audio sink up: record -> ~/recordings (FLAC), listen -> rtsp://$(hostname):8554/audio"
