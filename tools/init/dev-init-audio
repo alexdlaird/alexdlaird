@@ -24,8 +24,9 @@ if [[ "$INTERACTIVE" != "true" ]]; then
 fi
 
 # Capture/serve dependencies. ffmpeg + alsa-utils also come from dev-init-debian;
-# netcat lets bin/stream wait for MediaMTX to be listening before it publishes.
-sudo apt-get install $APT_FLAGS ffmpeg alsa-utils netcat-openbsd
+# netcat lets bin/stream wait for MediaMTX to be listening before it publishes, and
+# curl + python3 are used by the video stream, health check, and camera login.
+sudo apt-get install $APT_FLAGS ffmpeg alsa-utils netcat-openbsd curl python3
 sudo usermod -aG audio "$USER"
 
 # Firewall: LAN-only RTSP + SSH, everything else denied inbound. Off-LAN access
@@ -45,13 +46,24 @@ if [[ ! -x "$HOME/mediamtx/mediamtx" ]]; then
   curl -sL "https://github.com/bluenviron/mediamtx/releases/download/${MEDIAMTX_VER}/mediamtx_${MEDIAMTX_VER}_linux_amd64.tar.gz" | tar xz -C "$HOME/mediamtx" mediamtx
 fi
 
-# Install the core audio-sink services (unit files versioned in private-dev): the
-# MediaMTX RTSP server and the ffmpeg capture (FLAC archive + AAC publish).
-for unit in stream-mediamtx stream; do
+# Install the core audio/video-sink services (unit files versioned in private-dev):
+# the MediaMTX RTSP server (also pulls and records the camera), the ffmpeg capture
+# (FLAC archive + AAC publish), the live video+audio publisher, and the health check
+# that restarts any of them that stall.
+for unit in stream-mediamtx stream stream-video stream-healthcheck; do
   sudo ln -snf "$PRIVATE_DEV/lib/${unit}.service" "/etc/systemd/system/${unit}.service"
 done
+sudo ln -snf "$PRIVATE_DEV/lib/stream-healthcheck.timer" "/etc/systemd/system/stream-healthcheck.timer"
+# The health check runs as root, so it runs a root-owned copy, not the repo's writable script.
+sudo install -m 0755 -o root -g root "$PRIVATE_DEV/bin/stream-healthcheck" /usr/local/sbin/stream-healthcheck
 sudo systemctl daemon-reload
-sudo systemctl enable --now stream-mediamtx.service stream.service
+sudo systemctl enable --now stream-mediamtx.service stream.service stream-video.service stream-healthcheck.timer
+
+# The camera is only pulled when its read-only login is in ~/.env, never the repo.
+if [[ ! -f "$HOME/.env" ]] || ! grep -q '^CAMERA_VIEWER_PASS=' "$HOME/.env"; then
+  echo "!!> CAMERA_VIEWER_PASS not set in ~/.env; the camera won't be pulled or recorded."
+  echo "!!> Add it (see servers/ariel/README.md) and restart stream-mediamtx to enable video."
+fi
 
 # Off-LAN RTSP tunnel — only when a reserved ngrok address is configured. The
 # reserved address + authtoken live in ~/.env, never the repo.
@@ -68,7 +80,8 @@ else
 fi
 
 echo "--> audio sink up: record -> ~/recordings (FLAC), listen -> rtsp://$(hostname):8554/audio"
+echo "--> video sink up: record -> ~/recordings/camera, listen -> rtsp://$(hostname):8554/video"
 echo "--> set gain: raise ALSA capture (alsamixer / amixer) and the mic's own gain knob"
-echo "--> add the nightly prune to 'crontab -e' (see servers/ariel/README.md)"
+echo "--> add the nightly prune + disk guard to 'crontab -e' (see servers/ariel/README.md)"
 
 section_footer "Audio sink setup"
