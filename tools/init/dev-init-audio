@@ -29,10 +29,11 @@ fi
 sudo apt-get install $APT_FLAGS ffmpeg alsa-utils netcat-openbsd curl python3
 sudo usermod -aG audio "$USER"
 
-# Firewall: LAN-only RTSP + SSH, everything else denied inbound. Off-LAN access
-# is via the OpenVPN, not a public tunnel or direct inbound.
+# Firewall: LAN-only RTSP + SSH + camera control, everything else denied inbound.
+# Off-LAN access is via the OpenVPN, not a public tunnel or direct inbound.
 sudo ufw allow from 192.168.86.0/22 to any port 22
 sudo ufw allow from 192.168.86.0/22 to any port 8554 proto tcp
+sudo ufw allow from 192.168.86.0/22 to any port 8099 proto tcp
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 if ! sudo ufw status | grep -q "Status: active"; then
@@ -48,16 +49,19 @@ fi
 
 # Install the core audio/video-sink services (unit files versioned in private-dev):
 # the MediaMTX RTSP server (also pulls and records the camera), the ffmpeg capture
-# (FLAC archive + AAC publish), the live video+audio publisher, and the health check
-# that restarts any of them that stall.
-for unit in stream-mediamtx stream stream-video stream-healthcheck; do
+# (FLAC archive + AAC publish), the live video+audio publisher, the health check
+# that restarts any of them that stall, and the camera on/off control for the app.
+for unit in stream-mediamtx stream stream-video stream-healthcheck camera-control; do
   sudo ln -snf "$PRIVATE_DEV/lib/${unit}.service" "/etc/systemd/system/${unit}.service"
 done
 sudo ln -snf "$PRIVATE_DEV/lib/stream-healthcheck.timer" "/etc/systemd/system/stream-healthcheck.timer"
 # The health check runs as root, so it runs a root-owned copy, not the repo's writable script.
+# Install it before enabling camera-control: an older copy without the CAMERA_OFF_MARKER check
+# would restart stream-mediamtx every ~10 min while the camera is off (and camera-control
+# refuses "off" until this copy knows the marker).
 sudo install -m 0755 -o root -g root "$PRIVATE_DEV/bin/stream-healthcheck" /usr/local/sbin/stream-healthcheck
 sudo systemctl daemon-reload
-sudo systemctl enable --now stream-mediamtx.service stream.service stream-video.service stream-healthcheck.timer
+sudo systemctl enable --now stream-mediamtx.service stream.service stream-video.service stream-healthcheck.timer camera-control.service
 
 # The camera is only pulled when its read-only login is in ~/.env, never the repo.
 if [[ ! -f "$HOME/.env" ]] || ! grep -q '^CAMERA_VIEWER_PASS=' "$HOME/.env"; then
