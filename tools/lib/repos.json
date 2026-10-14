@@ -8,6 +8,7 @@
         "air-quality-bot": "air-quality-bot",
         "air-quality-bot-e2e": "air-quality-bot-e2e",
         "amazon-orders": "amazon-orders",
+        "amazon-orders-mcp": "amazon-orders-mcp",
         "java-ngrok": "java-ngrok",
         "java-ngrok-example-dropwizard": "java-ngrok-example-dropwizard",
         "java-ngrok-example-play": "java-ngrok-example-play",
