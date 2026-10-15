@@ -12,3 +12,4 @@
 *.tfstate.backup
 .claude/
 .playwright-mcp/
+inuse.*.lock

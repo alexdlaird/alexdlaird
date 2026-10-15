@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+hook_name="$(basename "$0")"
+
+ident_email() {
+  git var "$1" | sed -E 's/^.*<([^>]*)>.*$/\1/'
+}
+
+check_identity() {
+  local allowed
+  allowed="$(git config --get-all identity.allowedEmail)"
+  [[ -z "$allowed" ]] && return 0
+
+  local ident email
+  for ident in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do
+    email="$(ident_email "$ident")"
+    if ! grep -qxF "$email" <<< "$allowed"; then
+      echo "!!> $ident email $email is not allowed in this repo (allowed: $(paste -sd, - <<< "$allowed"))" >&2
+      return 1
+    fi
+  done
+}
+
+if [[ "$hook_name" == "pre-commit" || "$hook_name" == "pre-merge-commit" ]]; then
+  check_identity || exit 1
+fi
+
+git_dir="$(git rev-parse --git-common-dir 2>/dev/null)" || exit 0
+repo_hook="$git_dir/hooks/$hook_name"
+if [[ -x "$repo_hook" ]]; then
+  exec "$repo_hook" "$@"
+fi

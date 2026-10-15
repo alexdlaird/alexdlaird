@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+import json
+import os
+import subprocess
+import sys
+
+BIN_DIR = os.path.dirname(os.path.realpath(__file__))
+LIB_DIR = os.path.join(BIN_DIR, "..", "lib")
+BLOCK_MANAGER = os.path.join(BIN_DIR, "block-manager")
+GITIGNORE_SOURCE = os.path.join(LIB_DIR, ".gitignore_global")
+GITIGNORE_DEST = os.path.expanduser(os.path.join("~", ".gitignore_global"))
+REPOS_JSON_FILE = os.path.join(LIB_DIR, "repos.json")
+HOOK_DISPATCHER = os.path.realpath(os.path.join(LIB_DIR, "git-hooks", "dispatch"))
+HOOKS_DIR = os.path.expanduser(os.path.join("~", ".config", "git", "hooks"))
+PERSONAL_CONFIG = "~/.gitconfig-personal"
+PERSONAL_NAME = "Alex Laird"
+PERSONAL_EMAIL = "contact@alexlaird.com"
+ALLOWED_EMAILS = ["contact@alexlaird.com", "alexdlaird@gmail.com"]
+REMOTE_URL_FORMATS = ["git@github.com:{}/**", "ssh://git@github.com/{}/**", "https://github.com/{}/**"]
+HOOK_NAMES = [
+    "applypatch-msg", "pre-applypatch", "post-applypatch", "pre-commit", "pre-merge-commit", "prepare-commit-msg",
+    "commit-msg", "post-commit", "pre-rebase", "post-checkout", "post-merge", "pre-push", "pre-receive", "update",
+    "proc-receive", "post-receive", "post-update", "reference-transaction", "push-to-checkout", "pre-auto-gc",
+    "post-rewrite", "sendemail-validate", "post-index-change",
+]
+
+
+def git_config(*args, check=True):
+    return subprocess.run(["git", "config", *args], capture_output=True, text=True, check=check).stdout
+
+
+def sync_core_config():
+    git_config("--global", "user.name", PERSONAL_NAME)
+    git_config("--global", "user.useConfigOnly", "true")
+    git_config("--global", "--replace-all", "core.excludesFile", GITIGNORE_DEST)
+    subprocess.run([BLOCK_MANAGER, GITIGNORE_SOURCE, GITIGNORE_DEST, "alexdlaird-gitignore"], check=True)
+
+
+def write_personal_config():
+    path = os.path.expanduser(PERSONAL_CONFIG)
+    git_config("--file", path, "user.name", PERSONAL_NAME)
+    git_config("--file", path, "user.email", PERSONAL_EMAIL)
+    git_config("--file", path, "--unset-all", "identity.allowedEmail", check=False)
+    for email in ALLOWED_EMAILS:
+        git_config("--file", path, "--add", "identity.allowedEmail", email)
+
+
+def personal_include_conditions():
+    entries = git_config("--global", "--get-regexp", r"^includeif\..*\.path$", check=False).splitlines()
+    return {key[len("includeif."):-len(".path")] for key, _, value in (e.partition(" ") for e in entries)
+            if value == PERSONAL_CONFIG}
+
+
+def sync_includes(owners):
+    wanted = {f"hasconfig:remote.*.url:{fmt.format(owner)}" for owner in owners for fmt in REMOTE_URL_FORMATS}
+    current = personal_include_conditions()
+    for condition in sorted(current - wanted):
+        git_config("--global", "--remove-section", f"includeIf.{condition}")
+        print(f" -> Removed personal identity for {condition}")
+    for condition in sorted(wanted - current):
+        git_config("--global", f"includeIf.{condition}.path", PERSONAL_CONFIG)
+        print(f" -> Added personal identity for {condition}")
+
+
+def install_hook_dispatchers():
+    configured = git_config("--global", "--get", "core.hooksPath", check=False).strip()
+    if configured and os.path.realpath(os.path.expanduser(configured)) != os.path.realpath(HOOKS_DIR):
+        print(f"!!> core.hooksPath is already {configured}, not installing the identity guard")
+        return
+    os.makedirs(HOOKS_DIR, exist_ok=True)
+    for name in HOOK_NAMES:
+        link = os.path.join(HOOKS_DIR, name)
+        if os.path.islink(link) and os.readlink(link) == HOOK_DISPATCHER:
+            continue
+        if os.path.lexists(link):
+            os.remove(link)
+        os.symlink(HOOK_DISPATCHER, link)
+    git_config("--global", "core.hooksPath", HOOKS_DIR)
+
+
+def main():
+    if not os.path.exists(REPOS_JSON_FILE):
+        print(f"!!> Config file {REPOS_JSON_FILE} does not exist, nothing to do")
+        sys.exit(1)
+
+    with open(REPOS_JSON_FILE, "r", encoding="utf-8") as f:
+        owners = json.loads(f.read()).keys()
+
+    print("---------------------------------------------")
+    print(" Syncing Git config ...")
+    print("---------------------------------------------")
+
+    sync_core_config()
+    write_personal_config()
+    sync_includes(owners)
+    install_hook_dispatchers()
+
+    print("---------------------------------------------")
+    print(" ... finished Git config")
+    print("---------------------------------------------")
+
+
+if __name__ == "__main__":
+    main()
