@@ -26,24 +26,42 @@ HOOK_NAMES = [
 ]
 
 
+class GitConfigError(Exception):
+    def __init__(self, args, returncode, stderr):
+        super().__init__(f"git config {' '.join(args)} failed (exit {returncode}): {stderr.strip()}")
+        self.args_run = args
+        self.returncode = returncode
+        self.stderr = stderr
+
+
 def git_config(*args, check=True):
-    return subprocess.run(["git", "config", *args], capture_output=True, text=True, check=check).stdout
+    result = subprocess.run(["git", "config", *args], capture_output=True, text=True)
+    if check and result.returncode != 0:
+        raise GitConfigError(args, result.returncode, result.stderr)
+    return result.stdout
+
+
+def set_unless_current(scope, key, values):
+    values = [values] if isinstance(values, str) else list(values)
+    if git_config(*scope, "--get-all", key, check=False).splitlines() == values:
+        return
+    git_config(*scope, "--unset-all", key, check=False)
+    for value in values:
+        git_config(*scope, "--add", key, value)
 
 
 def sync_core_config():
-    git_config("--global", "user.name", PERSONAL_NAME)
-    git_config("--global", "user.useConfigOnly", "true")
-    git_config("--global", "--replace-all", "core.excludesFile", GITIGNORE_DEST)
+    set_unless_current(["--global"], "user.name", PERSONAL_NAME)
+    set_unless_current(["--global"], "user.useConfigOnly", "true")
+    set_unless_current(["--global"], "core.excludesFile", GITIGNORE_DEST)
     subprocess.run([BLOCK_MANAGER, GITIGNORE_SOURCE, GITIGNORE_DEST, "alexdlaird-gitignore"], check=True)
 
 
 def write_personal_config():
     path = os.path.expanduser(PERSONAL_CONFIG)
-    git_config("--file", path, "user.name", PERSONAL_NAME)
-    git_config("--file", path, "user.email", PERSONAL_EMAIL)
-    git_config("--file", path, "--unset-all", "identity.allowedEmail", check=False)
-    for email in ALLOWED_EMAILS:
-        git_config("--file", path, "--add", "identity.allowedEmail", email)
+    set_unless_current(["--file", path], "user.name", PERSONAL_NAME)
+    set_unless_current(["--file", path], "user.email", PERSONAL_EMAIL)
+    set_unless_current(["--file", path], "identity.allowedEmail", ALLOWED_EMAILS)
 
 
 def personal_include_conditions():
@@ -76,7 +94,7 @@ def install_hook_dispatchers():
         if os.path.lexists(link):
             os.remove(link)
         os.symlink(HOOK_DISPATCHER, link)
-    git_config("--global", "core.hooksPath", HOOKS_DIR)
+    set_unless_current(["--global"], "core.hooksPath", HOOKS_DIR)
 
 
 def main():
@@ -91,10 +109,14 @@ def main():
     print(" Syncing Git config ...")
     print("---------------------------------------------")
 
-    sync_core_config()
-    write_personal_config()
-    sync_includes(owners)
-    install_hook_dispatchers()
+    try:
+        sync_core_config()
+        write_personal_config()
+        sync_includes(owners)
+        install_hook_dispatchers()
+    except GitConfigError as e:
+        print(f"!!> {e}")
+        sys.exit(1)
 
     print("---------------------------------------------")
     print(" ... finished Git config")
