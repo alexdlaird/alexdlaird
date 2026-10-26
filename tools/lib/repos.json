@@ -8,8 +8,6 @@
         "ha-hearth": "ha-hearth",
         "pyhearth": "pyhearth",
         "theatre121": "theatre121",
-        "air-quality-bot": "air-quality-bot",
-        "air-quality-bot-e2e": "air-quality-bot-e2e",
         "amazon-auth": "amazon-auth",
         "amazon-orders": "amazon-orders",
         "amazon-orders-mcp": "amazon-orders-mcp",
@@ -26,7 +24,6 @@
         "pyngrok-example-flask": "pyngrok-example-flask",
         "private-dev": "private-dev",
         "cast-your-vote": "cast-your-vote",
-        "twilio-taskrouter-demo": "twilio-taskrouter-demo",
         "venus-direct": "venus-direct"
     },
     "HeliumEdu": {
@@ -34,8 +31,6 @@
         "infra": "helium",
         "platform": "helium/projects/platform",
         "frontend": "helium/projects/frontend",
-        "www": "helium/projects/www",
-        "frontend-legacy": "helium/projects/frontend-legacy",
-        "cluster-tests": "helium/projects/cluster-tests"
+        "www": "helium/projects/www"
     }
 }
