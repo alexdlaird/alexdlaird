@@ -31,6 +31,7 @@
         "infra": "helium",
         "platform": "helium/projects/platform",
         "frontend": "helium/projects/frontend",
-        "www": "helium/projects/www"
+        "www": "helium/projects/www",
+        "connector": "helium/projects/connector"
     }
 }
