@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Provisions (or replaces) a GitHub Actions runner on a self-hosted Mac under a dedicated CI user, from this machine:
+# waits until the runner of that name is idle, fetches a registration token with gh, and runs dev-init-mac-runner
+# there over ssh (token on stdin).
+#
+#   mac-runner-provision <host> <ci-user> <owner/repo> <runner-name> [extra-labels]
+#   mac-runner-provision osiris ci-a alexdlaird/theatre121 osiris-theatre121
+#   mac-runner-provision osiris ci-b alexdlaird/theatre121 osiris-theatre121-waiter waiter
+set -euo pipefail
+
+[[ $# -ge 4 ]] || { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+HOST=$1
+CI_USER=$2
+REPO=$3
+NAME=$4
+LABELS=${5:-}
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT="$DIR/../init/dev-init-mac-runner"
+[[ -f "$SCRIPT" ]] || { echo "missing $SCRIPT" >&2; exit 1; }
+HELPERS="$DIR/../lib/init-helpers.sh"
+
+runner_field() {
+  gh api "repos/${REPO}/actions/runners" --paginate \
+    --jq ".runners[] | select(.name == \"${NAME}\") | .$1"
+}
+
+echo "--- Waiting for ${NAME} to be idle"
+until [[ "$(runner_field busy)" != "true" ]]; do
+  sleep 30
+done
+
+TOKEN=$(gh api -X POST "repos/${REPO}/actions/runners/registration-token" --jq .token)
+REMOTE_DIR=$(ssh "$HOST" mktemp -d)
+trap 'ssh "$HOST" rm -rf "$REMOTE_DIR"' EXIT
+ssh "$HOST" mkdir -p "${REMOTE_DIR}/init" "${REMOTE_DIR}/lib"
+scp -q "$SCRIPT" "${HOST}:${REMOTE_DIR}/init/dev-init-mac-runner"
+scp -q "$HELPERS" "${HOST}:${REMOTE_DIR}/lib/init-helpers.sh"
+args=(--user "$CI_USER" --repo "$REPO" --name "$NAME")
+if [[ -n "$LABELS" ]]; then
+  args+=(--labels "$LABELS")
+fi
+printf %s "$TOKEN" | ssh "$HOST" sudo bash "${REMOTE_DIR}/init/dev-init-mac-runner" "$(printf '%q ' "${args[@]}")"
+
+echo "--- Waiting for ${NAME} to come online"
+for _ in $(seq 1 24); do
+  if [[ "$(runner_field status)" == "online" ]]; then
+    echo "--- ${NAME}: online ($(gh api "repos/${REPO}/actions/runners" --paginate \
+      --jq ".runners[] | select(.name == \"${NAME}\") | [.labels[].name] | join(\",\")"))"
+    exit 0
+  fi
+  sleep 5
+done
+echo "${NAME} didn't come online; check ${HOST}" >&2
+exit 1

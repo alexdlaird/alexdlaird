@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+# Provisions a GitHub Actions runner on this Mac under its own CI user, so iOS jobs on different users run in parallel
+# and no job runs as the admin. Replaces (same name and labels) any runner of that name in the admin's account.
+#
+#   printf %s "$TOKEN" | sudo dev-init-mac-runner --user ci-a --repo alexdlaird/theatre121 --name osiris-theatre121 \
+#     [--labels waiter] [--old-owner alexdlaird] [--android-home /Users/Shared/android-sdk] [--keep-old]
+#
+# The registration token comes on stdin (or RUNNER_TOKEN), never as an argument. Safe to re-run.
+set -euo pipefail
+
+OS_NAME=$(uname -s)
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+. "$DIR/../lib/init-helpers.sh"
+
+CI_GROUP=ci
+TOOL_CACHE=/Users/runner/hostedtoolcache
+SECRETS_DIR=/var/root/ci-users
+RUNNER_PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+TOOL_CACHE_ACE="group:${CI_GROUP} allow list,add_file,search,add_subdirectory,delete_child,readattr,writeattr,readextattr,writeextattr,readsecurity,file_inherit,directory_inherit"
+
+die() {
+  echo "dev-init-mac-runner: $*" >&2
+  exit 1
+}
+
+usage() {
+  sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+}
+
+CI_USER=""
+REPO=""
+NAME=""
+LABELS=""
+OLD_OWNER="${SUDO_USER:-}"
+ANDROID_HOME_DIR=""
+KEEP_OLD=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --user) CI_USER="$2"; shift 2 ;;
+    --repo) REPO="$2"; shift 2 ;;
+    --name) NAME="$2"; shift 2 ;;
+    --labels) LABELS="$2"; shift 2 ;;
+    --old-owner) OLD_OWNER="$2"; shift 2 ;;
+    --android-home) ANDROID_HOME_DIR="$2"; shift 2 ;;
+    --keep-old) KEEP_OLD=true; shift ;;
+    *) usage ;;
+  esac
+done
+[[ -n "$CI_USER" && -n "$REPO" && -n "$NAME" ]] || usage
+[[ "$OS_NAME" == Darwin ]] || die "macOS only"
+[[ $EUID -eq 0 ]] || die "run with sudo"
+[[ "$CI_USER" =~ ^[a-z][a-z0-9-]*$ ]] || die "--user must be a short lowercase name"
+if [[ -z "${RUNNER_TOKEN:-}" && ! -t 0 ]]; then
+  RUNNER_TOKEN=$(cat)
+fi
+[[ -n "${RUNNER_TOKEN:-}" ]] || die "no registration token on stdin or in RUNNER_TOKEN"
+
+LABEL="actions.runner.${REPO/\//-}.${NAME}"
+HOME_DIR="/Users/${CI_USER}"
+RUNNER_DIR="${HOME_DIR}/actions-runner/${NAME}"
+DAEMON_PLIST="/Library/LaunchDaemons/${LABEL}.plist"
+LOG_DIR="${HOME_DIR}/Library/Logs/${LABEL}"
+
+as_ci() {
+  sudo -u "$CI_USER" -H "$@"
+}
+
+ensure_group() {
+  dseditgroup -o read "$CI_GROUP" >/dev/null 2>&1 || dseditgroup -o create -r "GitHub Actions runners" "$CI_GROUP"
+}
+
+ensure_user() {
+  if ! id "$CI_USER" >/dev/null 2>&1; then
+    install -d -m 700 "$SECRETS_DIR"
+    local password
+    password=$(openssl rand -base64 24)
+    (umask 077 && printf %s "$password" >"${SECRETS_DIR}/${CI_USER}")
+    sysadminctl -addUser "$CI_USER" -fullName "GitHub Actions (${CI_USER})" -password "$password" \
+      -home "$HOME_DIR" -shell /bin/zsh
+    createhomedir -c -u "$CI_USER" >/dev/null
+    dscl . -create "/Users/${CI_USER}" IsHidden 1
+  fi
+  dseditgroup -o edit -a "$CI_USER" -t user "$CI_GROUP"
+}
+
+ensure_login_keychain() {
+  local keychain="${HOME_DIR}/Library/Keychains/login.keychain-db"
+  if [[ -f "$keychain" ]]; then
+    return
+  fi
+  as_ci mkdir -p "${HOME_DIR}/Library/Keychains"
+  as_ci security create-keychain -p "$(cat "${SECRETS_DIR}/${CI_USER}")" login.keychain-db
+  as_ci security list-keychains -d user -s login.keychain-db
+  as_ci security default-keychain -d user -s login.keychain-db
+  as_ci security set-keychain-settings login.keychain-db
+}
+
+ensure_shared_tool_cache() {
+  mkdir -p "$TOOL_CACHE"
+  chgrp -R "$CI_GROUP" "$TOOL_CACHE"
+  chmod -R g+rwX "$TOOL_CACHE"
+  find "$TOOL_CACHE" -type d -exec chmod g+s {} +
+  chmod -R -a "$TOOL_CACHE_ACE" "$TOOL_CACHE" 2>/dev/null || true
+  chmod -R +a "$TOOL_CACHE_ACE" "$TOOL_CACHE"
+}
+
+runner_configured() {
+  [[ -f "${RUNNER_DIR}/.runner" ]] &&
+    grep -q "\"gitHubUrl\": \"https://github.com/${REPO}\"" "${RUNNER_DIR}/.runner" &&
+    grep -q "\"agentName\": \"${NAME}\"" "${RUNNER_DIR}/.runner"
+}
+
+download_runner() {
+  if [[ -x "${RUNNER_DIR}/config.sh" ]]; then
+    return
+  fi
+  local release version asset sha work
+  release=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest)
+  version=$(/usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))' <<<"$release")
+  sha=$(/usr/bin/python3 -c '
+import json, re, sys
+body = json.load(sys.stdin)["body"]
+print(re.search(r"<!-- BEGIN SHA osx-arm64 -->([0-9a-f]{64})<!-- END SHA osx-arm64 -->", body).group(1))
+' <<<"$release")
+  asset="actions-runner-osx-arm64-${version}.tar.gz"
+  work=$(mktemp -d)
+  curl -fsSL -o "${work}/${asset}" "https://github.com/actions/runner/releases/download/v${version}/${asset}"
+  echo "${sha}  ${work}/${asset}" | shasum -a 256 -c - >/dev/null || die "checksum mismatch for ${asset}"
+  as_ci mkdir -p "$RUNNER_DIR"
+  tar -xzf "${work}/${asset}" -C "$RUNNER_DIR"
+  chown -R "${CI_USER}:staff" "$RUNNER_DIR"
+  rm -rf "$work"
+}
+
+old_agent_plist() {
+  if [[ -z "$OLD_OWNER" ]]; then
+    return 1
+  fi
+  echo "/Users/${OLD_OWNER}/Library/LaunchAgents/${LABEL}.plist"
+}
+
+stop_old_runner() {
+  local plist
+  plist=$(old_agent_plist) || return 0
+  [[ -f "$plist" ]] || return 0
+  local uid
+  uid=$(id -u "$OLD_OWNER")
+  launchctl bootout "gui/${uid}/${LABEL}" 2>/dev/null || launchctl bootout "user/${uid}/${LABEL}" 2>/dev/null || true
+}
+
+configure_runner() {
+  runner_configured && return
+  local args=(--unattended --url "https://github.com/${REPO}" --name "$NAME" --work _work --replace)
+  if [[ -n "$LABELS" ]]; then
+    args+=(--labels "$LABELS")
+  fi
+  (cd "$RUNNER_DIR" && as_ci ./config.sh "${args[@]}" --token "$RUNNER_TOKEN")
+}
+
+write_runner_env() {
+  as_ci sh -c "printf '%s\n' '${RUNNER_PATH}' >'${RUNNER_DIR}/.path'"
+  {
+    echo "LANG=en_US.UTF-8"
+    if [[ -n "$ANDROID_HOME_DIR" ]]; then
+      echo "ANDROID_HOME=${ANDROID_HOME_DIR}"
+    fi
+  } | as_ci tee "${RUNNER_DIR}/.env" >/dev/null
+}
+
+install_daemon() {
+  as_ci cp "${RUNNER_DIR}/bin/runsvc.sh" "${RUNNER_DIR}/runsvc.sh"
+  as_ci chmod +x "${RUNNER_DIR}/runsvc.sh"
+  as_ci mkdir -p "$LOG_DIR"
+  cat >"$DAEMON_PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>${LABEL}</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>${RUNNER_DIR}/runsvc.sh</string>
+    </array>
+    <key>UserName</key>
+    <string>${CI_USER}</string>
+    <key>WorkingDirectory</key>
+    <string>${RUNNER_DIR}</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>${LOG_DIR}/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>${LOG_DIR}/stderr.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>ACTIONS_RUNNER_SVC</key>
+      <string>1</string>
+    </dict>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>SessionCreate</key>
+    <true/>
+  </dict>
+</plist>
+EOF
+  chown root:wheel "$DAEMON_PLIST"
+  chmod 644 "$DAEMON_PLIST"
+  launchctl bootout "system/${LABEL}" 2>/dev/null || true
+  launchctl bootstrap system "$DAEMON_PLIST"
+}
+
+wait_until_listening() {
+  local deadline=$((SECONDS + 90)) started log
+  started=$(date +%s)
+  while ((SECONDS < deadline)); do
+    log=$(ls -t "${RUNNER_DIR}"/_diag/Runner_*.log 2>/dev/null | head -1)
+    if [[ -n "$log" && $(stat -f %m "$log") -ge $started ]] && grep -q "Listening for Jobs" "$log"; then
+      return
+    fi
+    sleep 3
+  done
+  die "${NAME} didn't start listening; see ${LOG_DIR} and ${RUNNER_DIR}/_diag"
+}
+
+retire_old_runner() {
+  local plist old_dir
+  plist=$(old_agent_plist) || return 0
+  [[ -f "$plist" ]] || return 0
+  old_dir=$(/usr/libexec/PlistBuddy -c "Print :WorkingDirectory" "$plist" 2>/dev/null || true)
+  rm -f "$plist"
+  if [[ "$KEEP_OLD" == false && -n "$old_dir" && "$old_dir" != "$RUNNER_DIR" && -f "${old_dir}/.runner" ]]; then
+    rm -rf "$old_dir"
+  fi
+}
+
+section_header "Initializing runner ${NAME} (${REPO}) as ${CI_USER}"
+ensure_group
+ensure_user
+ensure_login_keychain
+ensure_shared_tool_cache
+download_runner
+stop_old_runner
+configure_runner
+write_runner_env
+install_daemon
+wait_until_listening
+retire_old_runner
+section_footer "runner ${NAME} setup"
