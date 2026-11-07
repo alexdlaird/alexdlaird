@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Provisions a GitHub Actions runner on this Mac under its own CI user, so iOS jobs on different users run in parallel
-# and no job runs as the admin. Replaces (same name and labels) any runner of that name in the admin's account.
+# and no job runs as the admin. A runner of the same name is replaced.
 #
 #   printf %s "$TOKEN" | sudo dev-init-mac-runner --user ci-a --repo alexdlaird/theatre121 --name osiris-theatre121 \
-#     [--labels waiter] [--old-owner alexdlaird] [--android-home /Users/Shared/android-sdk] [--keep-old]
+#     [--labels waiter] [--android-home /Users/Shared/android-sdk]
 #
 # The registration token comes on stdin (or RUNNER_TOKEN), never as an argument. Safe to re-run.
 set -euo pipefail
@@ -32,18 +32,14 @@ CI_USER=""
 REPO=""
 NAME=""
 LABELS=""
-OLD_OWNER="${SUDO_USER:-}"
 ANDROID_HOME_DIR=""
-KEEP_OLD=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --user) CI_USER="$2"; shift 2 ;;
     --repo) REPO="$2"; shift 2 ;;
     --name) NAME="$2"; shift 2 ;;
     --labels) LABELS="$2"; shift 2 ;;
-    --old-owner) OLD_OWNER="$2"; shift 2 ;;
     --android-home) ANDROID_HOME_DIR="$2"; shift 2 ;;
-    --keep-old) KEEP_OLD=true; shift ;;
     *) usage ;;
   esac
 done
@@ -133,22 +129,6 @@ print(re.search(r"<!-- BEGIN SHA osx-arm64 -->([0-9a-f]{64})<!-- END SHA osx-arm
   rm -rf "$work"
 }
 
-old_agent_plist() {
-  if [[ -z "$OLD_OWNER" ]]; then
-    return 1
-  fi
-  echo "/Users/${OLD_OWNER}/Library/LaunchAgents/${LABEL}.plist"
-}
-
-stop_old_runner() {
-  local plist
-  plist=$(old_agent_plist) || return 0
-  [[ -f "$plist" ]] || return 0
-  local uid
-  uid=$(id -u "$OLD_OWNER")
-  launchctl bootout "gui/${uid}/${LABEL}" 2>/dev/null || launchctl bootout "user/${uid}/${LABEL}" 2>/dev/null || true
-}
-
 configure_runner() {
   runner_configured && return
   local args=(--unattended --url "https://github.com/${REPO}" --name "$NAME" --work _work --replace)
@@ -224,27 +204,14 @@ wait_until_listening() {
   die "${NAME} didn't start listening; see ${LOG_DIR} and ${RUNNER_DIR}/_diag"
 }
 
-retire_old_runner() {
-  local plist old_dir
-  plist=$(old_agent_plist) || return 0
-  [[ -f "$plist" ]] || return 0
-  old_dir=$(/usr/libexec/PlistBuddy -c "Print :WorkingDirectory" "$plist" 2>/dev/null || true)
-  rm -f "$plist"
-  if [[ "$KEEP_OLD" == false && -n "$old_dir" && "$old_dir" != "$RUNNER_DIR" && -f "${old_dir}/.runner" ]]; then
-    rm -rf "$old_dir"
-  fi
-}
-
 section_header "Initializing runner ${NAME} (${REPO}) as ${CI_USER}"
 ensure_group
 ensure_user
 ensure_login_keychain
 ensure_shared_tool_cache
 download_runner
-stop_old_runner
 configure_runner
 write_runner_env
 install_daemon
 wait_until_listening
-retire_old_runner
 section_footer "runner ${NAME} setup"
