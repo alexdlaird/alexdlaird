@@ -188,7 +188,17 @@ EOF
   chown root:wheel "$DAEMON_PLIST"
   chmod 644 "$DAEMON_PLIST"
   launchctl bootout "system/${LABEL}" 2>/dev/null || true
+  wait_until_unloaded
   launchctl bootstrap system "$DAEMON_PLIST"
+}
+
+# bootout returns before the old daemon is gone; bootstrapping the same label meanwhile fails (5: Input/output error).
+wait_until_unloaded() {
+  local deadline=$((SECONDS + 30))
+  while launchctl print "system/${LABEL}" >/dev/null 2>&1; do
+    ((SECONDS < deadline)) || die "${LABEL} didn't unload"
+    sleep 1
+  done
 }
 
 wait_until_listening() {
