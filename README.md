@@ -12,7 +12,7 @@ Hello 👋, and welcome! Here you will find the source code for many of my proje
 <td width="115"><a href="https://app.heliumedu.com"><img src="https://img.shields.io/badge/Launch-App-4285F4?logo=googlechrome&logoColor=white" alt="Launch App"></a></td>
 </tr>
 <tr valign="middle">
-<td>📦 <b><a href="https://github.com/alexdlaird/amazon-orders">amazon-orders</a></b> — A Python library (and CLI) for Amazon order history, line items, and transactions</td>
+<td>📦 <b><a href="https://github.com/alexdlaird/amazon-orders">amazon-orders</a></b> — A Python library (and CLI) for Amazon order history, line items, and transactions (also see <a href="https://github.com/alexdlaird/amazon-auth">amazon-auth</a>)</td>
 <td width="115"><a href="https://pepy.tech/project/amazon-orders"><img src="https://static.pepy.tech/badge/amazon-orders" alt="Downloads"></a></td>
 </tr>
 </table>
