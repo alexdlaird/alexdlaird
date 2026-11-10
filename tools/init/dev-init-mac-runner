@@ -80,6 +80,14 @@ ensure_user() {
   dseditgroup -o edit -a "$CI_USER" -t user "$CI_GROUP"
 }
 
+# A runner's home and the shared tool cache are all rebuildable churn (builds, caches, tool downloads); kept out of Time Machine, whose local
+# snapshots would otherwise hold every deleted build until a backup completes and fill the disk.
+ensure_excluded_from_backups() {
+  tmutil addexclusion -p "$HOME_DIR"
+  mkdir -p "$TOOL_CACHE"
+  tmutil addexclusion -p "$TOOL_CACHE"
+}
+
 ensure_login_keychain() {
   local keychain="${HOME_DIR}/Library/Keychains/login.keychain-db"
   if [[ -f "$keychain" ]]; then
@@ -169,6 +177,10 @@ install_daemon() {
     <string>${RUNNER_DIR}</string>
     <key>RunAtLoad</key>
     <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
     <key>StandardOutPath</key>
     <string>${LOG_DIR}/stdout.log</string>
     <key>StandardErrorPath</key>
@@ -217,6 +229,7 @@ wait_until_listening() {
 section_header "Initializing runner ${NAME} (${REPO}) as ${CI_USER}"
 ensure_group
 ensure_user
+ensure_excluded_from_backups
 ensure_login_keychain
 ensure_shared_tool_cache
 download_runner
