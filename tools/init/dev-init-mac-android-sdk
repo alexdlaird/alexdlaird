@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Installs the Android SDK this Mac's CI runners build Flutter apps with, at /Users/Shared/android-sdk, shared by the
+# `ci` group (each runner's user) and writable by it, so a build's Gradle can add a package the list below lacks. Run as
+# the Mac's admin user, not with sudo (sudo is asked for only to hand the folder to the group); needs Homebrew's
+# android-commandlinetools and openjdk@21 (dev-init-mac-brew). Running it accepts the Android SDK licenses. Safe to
+# re-run, which also updates the packages.
+#
+#   dev-init-mac-android-sdk [--sdk-root /Users/Shared/android-sdk]
+set -euo pipefail
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+. "$DIR/../lib/init-helpers.sh"
+
+CI_GROUP=ci
+SDK_ROOT=/Users/Shared/android-sdk
+JDK=/opt/homebrew/opt/openjdk@21
+SDKMANAGER=/opt/homebrew/share/android-commandlinetools/cmdline-tools/latest/bin/sdkmanager
+# The same access the runners' shared tool cache gives the group (dev-init-mac-runner), inherited by what's added later.
+GROUP_ACE="group:${CI_GROUP} allow list,add_file,search,add_subdirectory,delete_child,readattr,writeattr,readextattr,writeextattr,readsecurity,file_inherit,directory_inherit"
+# What Flutter's Android defaults build with (compile/target SDK, NDK) and the Android Gradle Plugin's default
+# build-tools, plus the CMake plugins with native code use.
+PACKAGES=(
+  "platform-tools"
+  "cmdline-tools;latest"
+  "platforms;android-36"
+  "build-tools;36.1.0"
+  "build-tools;35.0.0"
+  "ndk;28.2.13676358"
+  "cmake;3.22.1"
+)
+
+die() {
+  echo "dev-init-mac-android-sdk: $*" >&2
+  exit 1
+}
+
+usage() {
+  sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --sdk-root) SDK_ROOT="$2"; shift 2 ;;
+    *) usage ;;
+  esac
+done
+[[ "$(uname -s)" == Darwin ]] || die "macOS only"
+[[ $EUID -ne 0 ]] || die "run as the admin user, not with sudo"
+[[ -x "$SDKMANAGER" ]] || die "missing $SDKMANAGER (brew install --cask android-commandlinetools)"
+[[ -x "${JDK}/bin/java" ]] || die "missing ${JDK} (brew install openjdk@21)"
+dseditgroup -o read "$CI_GROUP" >/dev/null 2>&1 || die "no ${CI_GROUP} group; provision a runner first (dev-init-mac-runner)"
+
+sdkmanager() {
+  JAVA_HOME="$JDK" "$SDKMANAGER" --sdk_root="$SDK_ROOT" "$@"
+}
+
+install_packages() {
+  section_header "Installing Android SDK packages in ${SDK_ROOT}"
+  mkdir -p "$SDK_ROOT"
+  sdkmanager --licenses < <(yes) >/dev/null
+  sdkmanager --install "${PACKAGES[@]}"
+  sdkmanager --update
+  section_footer "Installing Android SDK packages"
+}
+
+share_with_ci_group() {
+  section_header "Sharing ${SDK_ROOT} with the ${CI_GROUP} group"
+  sudo chgrp -R "$CI_GROUP" "$SDK_ROOT"
+  sudo chmod -R g+rwX "$SDK_ROOT"
+  sudo find "$SDK_ROOT" -type d -exec chmod g+s {} +
+  sudo chmod -R -a "$GROUP_ACE" "$SDK_ROOT" 2>/dev/null || true
+  sudo chmod -R +a "$GROUP_ACE" "$SDK_ROOT"
+  section_footer "Sharing ${SDK_ROOT}"
+}
+
+keep_out_of_backups() {
+  sudo tmutil addexclusion -p "$SDK_ROOT"
+}
+
+install_packages
+share_with_ci_group
+keep_out_of_backups
+echo "--- Android SDK ready: ANDROID_HOME=${SDK_ROOT} (the shared Android candidate workflow finds it there)"
