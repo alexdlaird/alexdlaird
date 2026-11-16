@@ -49,10 +49,14 @@ sudo apt-get install $APT_FLAGS --no-install-recommends cups avahi-daemon
 sudo systemctl enable --now cups.service
 sudo usermod -aG lpadmin "$USER"
 
-# cupsctl rewrites cupsd.conf and restarts cupsd, so it only runs when a setting is missing.
+# Without the default _cups subtype, macOS sets the queue up as AirPrint instead of a CUPS share with a Generic
+# PostScript driver; iOS needs _universal. cupsctl rewrites cupsd.conf and restarts cupsd, so it only runs when a
+# setting is missing.
+CUPS_SUBTYPES="_print,_universal"
 CUPS_SETTINGS=$(sudo cupsctl)
-if ! grep -qx "_share_printers=1" <<< "$CUPS_SETTINGS" || ! grep -qx "_remote_admin=1" <<< "$CUPS_SETTINGS"; then
-  sudo cupsctl --share-printers --remote-admin
+if ! grep -qx "_share_printers=1" <<< "$CUPS_SETTINGS" || ! grep -qx "_remote_admin=1" <<< "$CUPS_SETTINGS" \
+     || ! grep -qx "BrowseDNSSDSubTypes=$CUPS_SUBTYPES" <<< "$CUPS_SETTINGS"; then
+  sudo cupsctl --share-printers --remote-admin "BrowseDNSSDSubTypes=$CUPS_SUBTYPES"
 fi
 
 # Snaps like chromium pull in the CUPS snap; it only steps aside (proxy mode) when it sees a classic cupsd at start.
