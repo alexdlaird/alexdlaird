@@ -48,7 +48,12 @@ fi
 sudo apt-get install $APT_FLAGS --no-install-recommends cups avahi-daemon
 sudo systemctl enable --now cups.service
 sudo usermod -aG lpadmin "$USER"
-sudo cupsctl --share-printers --remote-admin
+
+# cupsctl rewrites cupsd.conf and restarts cupsd, so it only runs when a setting is missing.
+CUPS_SETTINGS=$(sudo cupsctl)
+if ! grep -qx "_share_printers=1" <<< "$CUPS_SETTINGS" || ! grep -qx "_remote_admin=1" <<< "$CUPS_SETTINGS"; then
+  sudo cupsctl --share-printers --remote-admin
+fi
 
 # Snaps like chromium pull in the CUPS snap; it only steps aside (proxy mode) when it sees a classic cupsd at start.
 if snap list cups &>/dev/null; then
@@ -62,12 +67,19 @@ if sudo ufw status | grep -q "Status: active"; then
   sudo ufw allow from 192.168.86.0/22 to any port 5353 proto udp
 fi
 
+PREVIOUS_DESCRIPTION=$(lpstat -l -p "$PRINTER_QUEUE" 2>/dev/null | sed -n 's/^[[:space:]]*Description: //p')
+
 if [[ -z "$PRINTER_URI" ]]; then
   echo "!!> PRINTER_URI not set in ~/.env; no print queue was created."
   echo "!!> Add it (e.g. PRINTER_URI=ipp://<printer-ip>/ipp/print) and rerun to create the shared queue."
 elif sudo lpadmin -p "$PRINTER_QUEUE" -E -v "$PRINTER_URI" -m everywhere -D "$PRINTER_DESCRIPTION" \
        -o printer-is-shared=true -o printer-error-policy=retry-job; then
   sudo lpadmin -p "$PRINTER_QUEUE" -o Duplex=None -o cupsPrintQuality=Normal
+  # cupsd keeps advertising a queue under the name it first registered; re-sharing makes a new description visible.
+  if [[ -n "$PREVIOUS_DESCRIPTION" && "$PREVIOUS_DESCRIPTION" != "$PRINTER_DESCRIPTION" ]]; then
+    sudo lpadmin -p "$PRINTER_QUEUE" -o printer-is-shared=false
+    sudo lpadmin -p "$PRINTER_QUEUE" -o printer-is-shared=true
+  fi
   sudo lpadmin -d "$PRINTER_QUEUE"
   echo "--> print server up: \"$PRINTER_DESCRIPTION\" shared via Bonjour (AirPrint), feeding $PRINTER_URI"
 else
