@@ -88,6 +88,13 @@ if [[ "$OS_NAME" == "Linux" ]]; then
   fi
 fi
 
+# 11. Print server (CUPS) - Linux only
+if [[ "$OS_NAME" == "Linux" ]]; then
+  if confirm_n "Install print server (CUPS)?"; then
+    . "$DIR/dev-init-print"
+  fi
+fi
+
 echo "============================================="
 echo " ... finished system setup"
 echo "============================================="

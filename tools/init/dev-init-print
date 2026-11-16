@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}" )" &> /dev/null && pwd )
+
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing Print Server"
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo "!!> Print server setup is only supported on Linux"
+  return 0 2>/dev/null || exit 1
+fi
+
+# Set apt flags based on interactive mode
+APT_FLAGS=""
+if [[ "$INTERACTIVE" != "true" ]]; then
+  APT_FLAGS="-y"
+fi
+
+# The printer's address is host-specific, so it lives in ~/.env, never the repo.
+print_env_value() {
+  grep -m1 "^$1=" "$HOME/.env" 2>/dev/null | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'
+}
+PRINTER_URI="${PRINTER_URI:-$(print_env_value PRINTER_URI)}"
+PRINTER_QUEUE="${PRINTER_QUEUE:-$(print_env_value PRINTER_QUEUE)}"
+PRINTER_QUEUE="${PRINTER_QUEUE:-printer}"
+PRINTER_DESCRIPTION="${PRINTER_DESCRIPTION:-$(print_env_value PRINTER_DESCRIPTION)}"
+PRINTER_DESCRIPTION="${PRINTER_DESCRIPTION:-$PRINTER_QUEUE}"
+
+# A removed-but-not-purged CUPS leaves stale printers and config in /etc/cups; keep a copy, then purge it so the
+# fresh install starts clean. cups-browsed is purged in any state: a server with a static queue doesn't need it,
+# and it would auto-create duplicate queues for every printer it discovers.
+if [[ -d /etc/cups ]] && ! dpkg-query -W -f='${Status}' cups-daemon 2>/dev/null | grep -q "ok installed"; then
+  CUPS_BACKUP="$HOME/cups-etc-backup-$(date +%Y%m%d%H%M%S).tar.gz"
+  sudo tar czf "$CUPS_BACKUP" -C / etc/cups
+  sudo chown "$USER:" "$CUPS_BACKUP"
+  echo "--> backed up the old /etc/cups to $CUPS_BACKUP"
+fi
+UNWANTED_PACKAGES=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' \
+                      cups-daemon cups-browsed cups-pk-helper python3-cupshelpers 2>/dev/null \
+                    | awk '$1 == "rc" || ($2 == "cups-browsed" && $1 == "ii") {print $2}')
+if [[ -n "$UNWANTED_PACKAGES" ]]; then
+  sudo apt-get purge $APT_FLAGS $UNWANTED_PACKAGES
+fi
+
+# Driverless (IPP Everywhere) needs no vendor drivers, and skipping recommends keeps out cups-browsed, ipp-usb,
+# and the scanner stack.
+sudo apt-get install $APT_FLAGS --no-install-recommends cups avahi-daemon
+sudo systemctl enable --now cups.service
+sudo usermod -aG lpadmin "$USER"
+sudo cupsctl --share-printers --remote-admin
+
+# Snaps like chromium pull in the CUPS snap; it only steps aside (proxy mode) when it sees a classic cupsd at start.
+if snap list cups &>/dev/null; then
+  sudo snap restart cups
+fi
+
+# Only open ports on a host whose firewall is already managed; this module never enables ufw, since that could
+# cut off other services on a shared host.
+if sudo ufw status | grep -q "Status: active"; then
+  sudo ufw allow from 192.168.86.0/22 to any port 631 proto tcp
+  sudo ufw allow from 192.168.86.0/22 to any port 5353 proto udp
+fi
+
+if [[ -z "$PRINTER_URI" ]]; then
+  echo "!!> PRINTER_URI not set in ~/.env; no print queue was created."
+  echo "!!> Add it (e.g. PRINTER_URI=ipp://<printer-ip>/ipp/print) and rerun to create the shared queue."
+elif sudo lpadmin -p "$PRINTER_QUEUE" -E -v "$PRINTER_URI" -m everywhere -D "$PRINTER_DESCRIPTION" \
+       -o printer-is-shared=true -o printer-error-policy=retry-job; then
+  sudo lpadmin -p "$PRINTER_QUEUE" -o Duplex=None -o cupsPrintQuality=Normal
+  sudo lpadmin -d "$PRINTER_QUEUE"
+  echo "--> print server up: \"$PRINTER_DESCRIPTION\" shared via Bonjour (AirPrint), feeding $PRINTER_URI"
+else
+  echo "!!> Couldn't create the queue from $PRINTER_URI; is the printer on and reachable from $(hostname)?"
+fi
+
+echo "--> manage the queue at https://$(hostname):631 (log in as $USER; lpadmin group takes effect on next login)"
+
+section_footer "Print server setup"
