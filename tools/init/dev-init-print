@@ -71,6 +71,10 @@ elif sudo lpadmin -p "$PRINTER_QUEUE" -E -v "$PRINTER_URI" -m everywhere -D "$PR
   sudo lpadmin -d "$PRINTER_QUEUE"
   echo "--> print server up: \"$PRINTER_DESCRIPTION\" shared via Bonjour (AirPrint), feeding $PRINTER_URI"
 else
+  # A failed driverless setup can still leave a shared raw queue, which would hand clients' PDFs to the printer as-is.
+  if lpoptions -p "$PRINTER_QUEUE" 2>/dev/null | grep -q "printer-make-and-model='Local Raw Printer'"; then
+    sudo lpadmin -x "$PRINTER_QUEUE"
+  fi
   echo "!!> Couldn't create the queue from $PRINTER_URI; is the printer on and reachable from $(hostname)?"
 fi
 
