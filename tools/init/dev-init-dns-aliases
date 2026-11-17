@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Keeps the DNS aliases current (whitefall).
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}" )" &> /dev/null && pwd )
+
+. "$DIR/../lib/init-helpers.sh"
+
+section_header "Initializing DNS aliases"
+
+DNS_ALIASES="$(cd "$DIR/../bin" && pwd)/dns-aliases"
+DNS_ALIASES_CONFIG="${DNS_ALIASES_CONFIG:-$HOME/Developer/private-dev/lib/dns-aliases.json}"
+DNS_ALIASES_LOG="$HOME/log/dns-aliases.log"
+
+if [[ ! -f "$DNS_ALIASES_CONFIG" ]]; then
+  echo "!!> $DNS_ALIASES_CONFIG not found; clone private-dev (or set DNS_ALIASES_CONFIG), then rerun."
+elif ! grep -q '^DNS_ALIASES_DDNS_PASSWORD=' "$HOME/.env" 2>/dev/null; then
+  echo "!!> DNS_ALIASES_DDNS_PASSWORD not set in ~/.env; rerun once it is."
+elif ! "$DNS_ALIASES" --config "$DNS_ALIASES_CONFIG"; then
+  echo "!!> The first sync failed (see above); the refresh wasn't scheduled."
+else
+  mkdir -p "$(dirname "$DNS_ALIASES_LOG")"
+  CRON_LINE="*/5 * * * * $DNS_ALIASES --config $DNS_ALIASES_CONFIG >> $DNS_ALIASES_LOG 2>&1"
+  OTHER_CRON_LINES=$(crontab -l 2>/dev/null | grep -vF "$DNS_ALIASES")
+  printf '%s\n' ${OTHER_CRON_LINES:+"$OTHER_CRON_LINES"} "$CRON_LINE" | crontab -
+  echo "--> DNS aliases in sync; refreshed every 5 minutes (changes and errors go to $DNS_ALIASES_LOG)"
+fi
+
+section_footer "DNS aliases setup"

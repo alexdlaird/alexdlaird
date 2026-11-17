@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Sets up the print server (whitefall).
 
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}" )" &> /dev/null && pwd )
 

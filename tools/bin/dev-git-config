@@ -16,7 +16,8 @@ HOOKS_DIR = os.path.expanduser(os.path.join("~", ".config", "git", "hooks"))
 PERSONAL_CONFIG = "~/.gitconfig-personal"
 PERSONAL_NAME = "Alex Laird"
 PERSONAL_EMAIL = "contact@alexlaird.com"
-ALLOWED_EMAILS = ["contact@alexlaird.com", "alexdlaird@gmail.com"]
+PRIVATE_ALLOWED_EMAILS_FILE = os.path.expanduser(
+    os.path.join("~", "Developer", "private-dev", "lib", "git-allowed-emails"))
 REMOTE_URL_FORMATS = ["git@github.com:{}/**", "ssh://git@github.com/{}/**", "https://github.com/{}/**"]
 HOOK_NAMES = [
     "applypatch-msg", "pre-applypatch", "post-applypatch", "pre-commit", "pre-merge-commit", "prepare-commit-msg",
@@ -57,11 +58,20 @@ def sync_core_config():
     subprocess.run([BLOCK_MANAGER, GITIGNORE_SOURCE, GITIGNORE_DEST, "alexdlaird-gitignore"], check=True)
 
 
+def allowed_emails():
+    """The personal email, plus any others listed (one per line) in private-dev once it's cloned."""
+    emails = [PERSONAL_EMAIL]
+    if os.path.exists(PRIVATE_ALLOWED_EMAILS_FILE):
+        with open(PRIVATE_ALLOWED_EMAILS_FILE, "r", encoding="utf-8") as f:
+            emails += [line.strip() for line in f if line.strip() and line.strip() not in emails]
+    return emails
+
+
 def write_personal_config():
     path = os.path.expanduser(PERSONAL_CONFIG)
     set_unless_current(["--file", path], "user.name", PERSONAL_NAME)
     set_unless_current(["--file", path], "user.email", PERSONAL_EMAIL)
-    set_unless_current(["--file", path], "identity.allowedEmail", ALLOWED_EMAILS)
+    set_unless_current(["--file", path], "identity.allowedEmail", allowed_emails())
 
 
 def personal_include_conditions():

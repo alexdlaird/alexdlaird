@@ -95,6 +95,13 @@ if [[ "$OS_NAME" == "Linux" ]]; then
   fi
 fi
 
+# 12. DNS aliases (dynamic DNS) - Linux only
+if [[ "$OS_NAME" == "Linux" ]]; then
+  if confirm_n "Install DNS aliases refresh (dynamic DNS)?"; then
+    . "$DIR/dev-init-dns-aliases"
+  fi
+fi
+
 echo "============================================="
 echo " ... finished system setup"
 echo "============================================="

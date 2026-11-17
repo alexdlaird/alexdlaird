@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Sets up the audio/video sink (ariel).
 
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}" )" &> /dev/null && pwd )
 

@@ -2,7 +2,7 @@
 # Provisions a GitHub Actions runner on this Mac under its own CI user, so iOS jobs on different users run in parallel
 # and no job runs as the admin. A runner of the same name is replaced.
 #
-#   printf %s "$TOKEN" | sudo dev-init-mac-runner --user ci-a --repo alexdlaird/theatre121 --name osiris-theatre121 \
+#   printf %s "$TOKEN" | sudo dev-init-mac-runner --user ci-a --repo my-org/my-app --name osiris-my-app \
 #     [--labels waiter] [--android-home /Users/Shared/android-sdk]
 #
 # The registration token comes on stdin (or RUNNER_TOKEN), never as an argument. Safe to re-run.

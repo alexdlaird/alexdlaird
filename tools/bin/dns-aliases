@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""dns-aliases — keep friendly names on a domain pointed at a host whose addresses change.
+
+Each alias follows a hostname: the alias's A record is set to one of that host's current addresses, looked up over
+DNS-over-HTTPS, so it works where the local network's DNS refuses to answer for the host and keeps up when the host's
+addresses change without notice. Run it often (cron); an alias already on one of the host's addresses is left alone.
+
+Each alias is a dynamic DNS record on the domain (short TTL), updated with the domain's dynamic DNS password
+(DNS_ALIASES_DDNS_PASSWORD, from the environment or ~/.env) through the service's update URL (ddns_update_url in
+the config). Records that never change stay in the registrar's dashboard.
+
+Config (JSON), DNS_ALIASES_CONFIG or --config, default ~/Developer/private-dev/lib/dns-aliases.json:
+
+    {"domain": "example.dev", "ddns_update_url": "https://ddns.example.com/update",
+     "aliases": {"home": {"follow": "host.example.com"}}}
+
+An alias whose host can't be resolved, or whose update the service refuses, keeps its record (and the run exits 1).
+Prints only what changed, and errors.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+DEFAULT_CONFIG = os.path.expanduser(os.path.join("~", "Developer", "private-dev", "lib", "dns-aliases.json"))
+DOH_RESOLVERS = ["https://cloudflare-dns.com/dns-query", "https://dns.google/resolve"]
+DNS_TYPE_A = 1
+DNS_STATUS_OK = 0
+DNS_STATUS_NXDOMAIN = 3
+TIMEOUT_SECONDS = 10
+
+
+class AliasError(Exception):
+    """A problem with one alias; the others still sync."""
+
+
+def log(message):
+    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}", flush=True)
+
+
+def env_value(name, path=os.path.expanduser(os.path.join("~", ".env"))):
+    if os.environ.get(name):
+        return os.environ[name]
+    try:
+        with open(path, encoding="utf-8") as env:
+            for line in env:
+                key, _, value = line.strip().partition("=")
+                if key.strip() == name:
+                    return value.strip().strip('"').strip("'")
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def doh_addresses(resolver, host):
+    query = urllib.parse.urlencode({"name": host, "type": "A"})
+    request = urllib.request.Request(f"{resolver}?{query}", headers={"Accept": "application/dns-json"})
+    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        answer = json.load(response)
+    if answer.get("Status") == DNS_STATUS_NXDOMAIN:
+        return set()
+    if answer.get("Status") != DNS_STATUS_OK:
+        raise AliasError(f"{host} answered DNS status {answer.get('Status')} from {resolver}")
+    return {record["data"] for record in answer.get("Answer", []) if record.get("type") == DNS_TYPE_A}
+
+
+def resolved(host):
+    """The union of what each resolver answers, so one resolver being down (or a step behind) loses nothing."""
+    addresses, failures = set(), []
+    for resolver in DOH_RESOLVERS:
+        try:
+            addresses |= doh_addresses(resolver, host)
+        except (AliasError, OSError, ValueError) as e:
+            failures.append(str(e))
+    if failures and len(failures) == len(DOH_RESOLVERS):
+        raise AliasError(f"couldn't look up {host} over DNS-over-HTTPS ({'; '.join(failures)})")
+    return addresses
+
+
+def ddns_update(update_url, domain, host, address, password):
+    query = urllib.parse.urlencode({"host": host, "domain": domain, "password": password, "ip": address})
+    try:
+        with urllib.request.urlopen(f"{update_url}?{query}", timeout=TIMEOUT_SECONDS) as response:
+            body = response.read().decode("utf-8", errors="replace")
+    except OSError as e:
+        raise AliasError(f"couldn't reach the dynamic DNS service for {host}.{domain} ({e})")
+    errors = re.findall(r"<Err\d+>(.*?)</Err\d+>", body)
+    if re.search(r"<ErrCount>0</ErrCount>", body) is None or errors:
+        raise AliasError(f"the dynamic DNS service refused {host}.{domain}: {'; '.join(errors) or body[:200]}")
+
+
+def sync(config, password, dry_run):
+    domain = config["domain"]
+    failed = False
+    for host, alias in config["aliases"].items():
+        name = f"{host}.{domain}"
+        try:
+            if "follow" not in alias:
+                raise AliasError(f"{name} needs a \"follow\"")
+            wanted = resolved(alias["follow"])
+            if not wanted:
+                raise AliasError(f"{alias['follow']} has no addresses")
+            current = resolved(name)
+            if current & wanted:
+                continue
+            address = sorted(wanted)[0]
+            if not dry_run:
+                ddns_update(config["ddns_update_url"], domain, host, address, password)
+            log(f"--> {'(dry run) ' if dry_run else ''}{name} {', '.join(sorted(current)) or 'unset'} -> {address} "
+                f"({alias['follow']})")
+        except AliasError as e:
+            log(f"!!> {e}; left as it was")
+            failed = True
+    return not failed
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Keep friendly names on a domain pointed at other hosts.")
+    parser.add_argument("--config", default=os.environ.get("DNS_ALIASES_CONFIG", DEFAULT_CONFIG))
+    parser.add_argument("--dry-run", action="store_true", help="print the changes without making them")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.config):
+        log(f"!!> Config file {args.config} does not exist, nothing to do")
+        sys.exit(1)
+    with open(args.config, encoding="utf-8") as f:
+        config = json.load(f)
+
+    password = env_value("DNS_ALIASES_DDNS_PASSWORD")
+    if not password and not args.dry_run:
+        log("!!> DNS_ALIASES_DDNS_PASSWORD isn't set (environment or ~/.env), nothing to do")
+        sys.exit(1)
+    sys.exit(0 if sync(config, password, args.dry_run) else 1)
+
+
+if __name__ == "__main__":
+    main()

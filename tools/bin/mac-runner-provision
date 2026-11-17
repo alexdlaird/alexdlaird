@@ -4,8 +4,8 @@
 # there over ssh (token on stdin).
 #
 #   mac-runner-provision <host> <ci-user> <owner/repo> <runner-name> [extra-labels]
-#   mac-runner-provision osiris ci-a alexdlaird/theatre121 osiris-theatre121
-#   mac-runner-provision osiris ci-b alexdlaird/theatre121 osiris-theatre121-waiter waiter
+#   mac-runner-provision osiris ci-a my-org/my-app osiris-my-app
+#   mac-runner-provision osiris ci-b my-org/my-app osiris-my-app-waiter waiter
 set -euo pipefail
 
 [[ $# -ge 4 ]] || { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }

@@ -1,12 +1,25 @@
 mkdir -p "$HOME/.pi/agent"
 
-read -r -s -p "Cortex remote ngrok basic-auth token (raw value of OLLAMA_NGROK_TOKEN from cortex's /home/alexdlaird/.env): " NGROK_BASIC_AUTH_TOKEN
+# The remote endpoint's address and login are host-specific, so they live in ~/.env, never the repo.
+cortex_env_value() {
+  grep -m1 "^$1=" "$HOME/.env" 2>/dev/null | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'
+}
+CORTEX_REMOTE_URL="${CORTEX_REMOTE_URL:-$(cortex_env_value CORTEX_REMOTE_URL)}"
+CORTEX_REMOTE_USER="${CORTEX_REMOTE_USER:-$(cortex_env_value CORTEX_REMOTE_USER)}"
+if [[ -z "$CORTEX_REMOTE_URL" ]]; then
+  read -r -p "Cortex remote base URL (https://...): " CORTEX_REMOTE_URL
+fi
+if [[ -z "$CORTEX_REMOTE_USER" ]]; then
+  read -r -p "Cortex remote basic-auth user: " CORTEX_REMOTE_USER
+fi
+read -r -s -p "Cortex remote basic-auth token: " CORTEX_REMOTE_TOKEN
 echo
-if [[ -z "$NGROK_BASIC_AUTH_TOKEN" ]]; then
-  echo "ERROR: token cannot be empty" >&2
+if [[ -z "$CORTEX_REMOTE_URL" || -z "$CORTEX_REMOTE_USER" || -z "$CORTEX_REMOTE_TOKEN" ]]; then
+  echo "ERROR: the remote URL, user and token cannot be empty" >&2
   exit 1
 fi
-NGROK_BASIC_AUTH_B64=$(printf 'alexdlaird:%s' "$NGROK_BASIC_AUTH_TOKEN" | base64 -w 0)
+CORTEX_REMOTE_URL="${CORTEX_REMOTE_URL%/}"
+CORTEX_REMOTE_AUTH_B64=$(printf '%s:%s' "$CORTEX_REMOTE_USER" "$CORTEX_REMOTE_TOKEN" | base64 -w 0)
 
 # 128K context. Bump to 262144 for full 256K Qwen native — borderline VRAM
 # fit on a 32GB card (q4_0 KV cache required either way; see the systemd
@@ -44,7 +57,7 @@ cat > "$HOME/.pi/agent/models.json" << EOF
       ]
     },
     "cortex-remote": {
-      "baseUrl": "https://cortex-ollama.alexdlaird.ngrok.dev/v1",
+      "baseUrl": "${CORTEX_REMOTE_URL}/v1",
       "api": "openai-completions",
       "apiKey": "ollama",
       "compat": {
@@ -52,7 +65,7 @@ cat > "$HOME/.pi/agent/models.json" << EOF
         "supportsReasoningEffort": false
       },
       "headers": {
-        "Authorization": "Basic ${NGROK_BASIC_AUTH_B64}"
+        "Authorization": "Basic ${CORTEX_REMOTE_AUTH_B64}"
       },
       "models": [
         {
@@ -105,9 +118,9 @@ cat > "$HOME/.config/opencode/opencode.json" << EOF
       "npm": "@ai-sdk/openai-compatible",
       "name": "Cortex (remote)",
       "options": {
-        "baseURL": "https://cortex-ollama.alexdlaird.ngrok.dev/v1",
+        "baseURL": "${CORTEX_REMOTE_URL}/v1",
         "headers": {
-          "Authorization": "Basic ${NGROK_BASIC_AUTH_B64}"
+          "Authorization": "Basic ${CORTEX_REMOTE_AUTH_B64}"
         }
       },
       "models": {
