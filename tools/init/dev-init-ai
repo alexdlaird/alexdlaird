@@ -17,9 +17,6 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' 2>/dev/null || true
 
 # Configure firewall: LAN-only for SSH and direct service access, docker0-only
-# for inter-container traffic, block outgoing to LAN. Public off-LAN access
-# happens via outbound ngrok tunnels (ssh/webui/ollama-ngrok-tunnel.service),
-# never via direct inbound — the upstream Arcadyan gateway blocks that anyway.
 sudo ufw allow from 192.168.86.0/22 to any port 22
 sudo ufw allow from 192.168.86.0/22 to any port 3000
 sudo ufw allow from 192.168.86.0/22 to any port 7860
