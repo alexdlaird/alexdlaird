@@ -28,6 +28,9 @@
         "theatre121": "theatre121",
         "venus-direct": "venus-direct"
     },
+    "inertlabs": {
+        "brand": "brand"
+    },
     "HeliumEdu": {
         ".github": "HeliumEdu-dot-github",
         "infra": "helium",
