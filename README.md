@@ -8,7 +8,7 @@ Hello 👋, and welcome! Here you will find the source code for many of my proje
 <td width="115"><a href="https://pepy.tech/project/pyngrok"><img src="https://static.pepy.tech/badge/pyngrok" alt="Downloads"></a></td>
 </tr>
 <tr valign="middle">
-<td>📅 <b><a href="https://github.com/HeliumEdu">Helium</a></b> — A free, open-source student planner I've been developing since 2009 — color-coded classes & homework, track grades, take notes. Available as a backend API with web & mobile apps</td>
+<td>📅 <b><a href="https://github.com/inertlabs">Helium</a></b> — A free, open-source student planner I've been developing since 2009 — color-coded classes & homework, track grades, take notes. Available as a backend API with web & mobile apps</td>
 <td width="115"><a href="https://app.heliumedu.com"><img src="https://img.shields.io/badge/Launch-App-4285F4?logo=googlechrome&logoColor=white" alt="Launch App"></a></td>
 </tr>
 <tr valign="middle">

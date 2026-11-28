@@ -29,9 +29,7 @@
         "venus-direct": "venus-direct"
     },
     "inertlabs": {
-        "inertlabs.github.io": "inertlabs.github.io"
-    },
-    "HeliumEdu": {
+        "inertlabs.github.io": "inertlabs.github.io",
         ".github": "HeliumEdu-dot-github",
         "infra": "helium",
         "platform": "helium/projects/platform",
